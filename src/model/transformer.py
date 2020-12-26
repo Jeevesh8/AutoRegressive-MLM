@@ -39,7 +39,7 @@ class TransformerDecoderBlock(hk.Module):
     def __call__(self, y, tgt_mask, src_mask, x_embds, training=False):
 
         attention_output = MultiHeadAttention(self.config)(y, y, tgt_mask,
-                                                           training=training, is_autoregressive=True)
+                                                           training=training, is_autoregressive=False)
         
         residual = attention_output+x
 
@@ -161,6 +161,7 @@ class TransformerFeaturizer(hk.Module):
             x = TransformerBlock(self.config)(x, mask,
                                          training=training, is_autoregressive=is_autoregressive)
         
+        x = jnp.average(x, axis=1)
         return x
 
 class LogitsTransformer(hk.Module):
@@ -200,3 +201,23 @@ class VaswaniTransformer(hk.Module):
         logits = hk.Linear(output_size=self.config['tgt_vocab_size'])(tgt_features)
 
         return logits
+
+class ExtendedEncoder(hk.Module):
+
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+    
+    def get_mask(self, token_ids):
+        return (jnp.bitwise_or(src_token_ids==self.config['pad_id'], 
+                                   src_token_ids==self.config['mask_id'])).astype(jnp.float32)
+    
+    def __call__(self, comment_embds, comments_mask, masked_token_ids, training=False):
+        
+        tgt_mask = self.get_mask(masked_token_ids)
+
+        new_embds = TransformerDecoderBlock(self.config)(masked_token_ids, tgt_mask, 
+                                                         comments_mask, comment_embds,
+                                                         training=training)
+        
+        return hk.Linear(output_size=self.config['vocab_size'])(new_embds)

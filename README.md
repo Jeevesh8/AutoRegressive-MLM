@@ -17,3 +17,12 @@ Here we realise the need for restructuring the code, and correspondingly, place 
 * Additionally, we include an option to make the transformer auto-regressive and add a mask for the same, [here](https://github.com/deterministic-algorithms-lab/NLP-Journey/blob/81f7a7568db6676d561aaf7f579f8af99c99b28a/src/model/transformer.py#L64). This is needed for CLM.
 
 The final notebook can be found [here](https://github.com/deterministic-algorithms-lab/NLP-Journey/blob/main/LanguageModelling/CLM_MLM_TLM.ipynb).
+
+## Steps
+
+1. Pick a jsonlist object; clean data to make a text tree. [[Can use tensorflow datasets to make a dataset out of this generator]]
+2. Flatten the text tree.
+3. Batch text sequences to encode them all. Store them alongside the text. Store a masked copy of each text sequence too.
+4. Unflatten tree. Tree now consists of nodes of form (text, encoding, masked_text). 
+5. Start BFS on tree using a generator that yields (prev_embdngs, final_masked_seq). Use this to prepare a batch.
+6. Send the batch to decoder-like non-autoregressive block to predict masked tokens, then backpropagate. Pick another batch from BFS generator and continue till no more batch left.  [[Won't use tensorflow datasets to make a dataset out of this generator.]]
