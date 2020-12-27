@@ -18,7 +18,7 @@ def mask_batch_mlm(key, config, batch_token_ids):
 
     key, subkey = jax.random.split(key)
     random_seq = jax.random.uniform(subkey, 
-                                    [config['batch_size'], config['max_length']],
+                                    [config['mlm_batch_size'], config['max_length']],
                                     maxval=1)
     
     batch_token_ids = jnp.where((random_seq<=0.15*0.8) * replacable,
@@ -27,7 +27,7 @@ def mask_batch_mlm(key, config, batch_token_ids):
     
     key, subkey = jax.random.split(key)
     random_words = jnp.floor( jax.random.uniform(subkey, 
-                                                 [config['batch_size'], config['max_length']], 
+                                                 [config['mlm_batch_size'], config['max_length']], 
                                                  maxval=config['vocab_size']) )
     random_words = jnp.asarray(random_words, dtype=jnp.int16)
     

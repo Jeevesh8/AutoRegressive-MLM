@@ -22,7 +22,7 @@ def make_lr_schedule(warmup_percentage, total_steps):
 
 
 def get_adam_opt(config):
-    total_steps = config['n_epochs']*(config['n_examples']//config['batch_size'])
+    total_steps = config['total_steps']
 
     lr_schedule = make_lr_schedule(warmup_percentage=0.1, total_steps=total_steps)
 

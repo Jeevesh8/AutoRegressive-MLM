@@ -73,7 +73,7 @@ class Tree_Tokenizer:
         for id, comment in tree['comments'].items():
             lis.append(comment['body'])
         
-        token_ids = jnp.asarray( self.get_token_ids(self.batch_encode_plus(lis)), dtype=np.int16)
+        token_ids = jnp.asarray( self.get_token_ids(self.batch_encode_plus(lis)), dtype=jnp.int16)
         
         i=0
         tree['tokenized_inputs'] = token_ids[i]

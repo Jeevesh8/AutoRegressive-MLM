@@ -41,16 +41,16 @@ class TransformerDecoderBlock(hk.Module):
         attention_output = MultiHeadAttention(self.config)(y, y, tgt_mask,
                                                            training=training, is_autoregressive=False)
         
-        residual = attention_output+x
+        residual = attention_output+y
 
-        attention_output = hk.LayerNorm(axis=-1,
-                                        create_scale=True,
-                                        create_offset=True,)(residual)
+        self_attention_output = hk.LayerNorm(axis=-1,
+                                             create_scale=True,
+                                             create_offset=True,)(residual)
         
-        attention_output = MultiHeadAttention(self.config)(x_embds, y, src_mask,
+        attention_output = MultiHeadAttention(self.config)(x_embds, self_attention_output, src_mask,
                                                            training=training, is_autoregressive=False)
         
-        residual = attention_output+x
+        residual = attention_output+self_attention_output
 
         attention_output = hk.LayerNorm(axis=-1,
                                         create_scale=True,
@@ -148,8 +148,8 @@ class TransformerFeaturizer(hk.Module):
         self.config = config
     
     def get_mask(self, token_ids):
-        return (jnp.bitwise_or(src_token_ids==self.config['pad_id'], 
-                                   src_token_ids==self.config['mask_id'])).astype(jnp.float32)
+        return (jnp.bitwise_or(token_ids==self.config['pad_id'], 
+                               token_ids==self.config['mask_id'])).astype(jnp.float32)
     
     def __call__(self, token_ids, lang_ids=None, training=False, is_autoregressive=False):
         
@@ -183,8 +183,8 @@ class VaswaniTransformer(hk.Module):
         self.config = config
     
     def get_mask(self, token_ids):
-        return (jnp.bitwise_or(src_token_ids==self.config['pad_id'], 
-                                   src_token_ids==self.config['mask_id'])).astype(jnp.float32)
+        return (jnp.bitwise_or(token_ids==self.config['pad_id'], 
+                               token_ids==self.config['mask_id'])).astype(jnp.float32)
         
     def __call__(self, src_token_ids, tgt_token_ids, src_lang_ids=None, tgt_lang_ids=None, training=False):
         
@@ -209,14 +209,16 @@ class ExtendedEncoder(hk.Module):
         self.config = config
     
     def get_mask(self, token_ids):
-        return (jnp.bitwise_or(src_token_ids==self.config['pad_id'], 
-                                   src_token_ids==self.config['mask_id'])).astype(jnp.float32)
+        return (jnp.bitwise_or(token_ids==self.config['pad_id'], 
+                               token_ids==self.config['mask_id'])).astype(jnp.float32)
     
     def __call__(self, comment_embds, comments_mask, masked_token_ids, training=False):
         
+        y = Embedding(self.config)(masked_token_ids, lang_ids=None, training=training)
+
         tgt_mask = self.get_mask(masked_token_ids)
 
-        new_embds = TransformerDecoderBlock(self.config)(masked_token_ids, tgt_mask, 
+        new_embds = TransformerDecoderBlock(self.config)(y, tgt_mask, 
                                                          comments_mask, comment_embds,
                                                          training=training)
         

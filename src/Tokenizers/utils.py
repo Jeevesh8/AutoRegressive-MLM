@@ -26,14 +26,14 @@ def tree_to_batch(tree, batch_size, key='tokenized_inputs', empty_elem='', inclu
     Takes in a tree and batches together elements of a particular key,
     returning a list of batches.
     """
-    elems = [tree[key]] if include_root else []
+    elems = ([tree[key]] if include_root else []) \
              + [ (comment if key is None else comment[key]) 
                 for id, comment in tree['comments'].items()]
 
     elems += [empty_elem]*( batch_size-(len(elems)%batch_size) )
     
-    batches = [elems[i*(batch_size) : (i+1)*batch_size] 
-                for i in range(len(elems)%batch_size)]
+    batches = [jnp.asarray(elems[i*(batch_size) : (i+1)*batch_size], dtype=jnp.int16) 
+                for i in range(len(elems)//batch_size)]
     
     return batches
 
@@ -60,10 +60,12 @@ def gather_parents(tree, elem, key='tokenized_inputs', include_root=True):
     of elem.
     """
     lis=[]
-    if hasattr(elem, 'parent_id'):
+    if 'parent_id' in elem:
         parent_id = elem['parent_id']
         while parent_id != tree['id']:
-            lis.append(tree['comments'][parent_id][key])
+            elem = tree['comments'][parent_id]
+            parent_id = elem['parent_id']
+            lis.append(elem[key])
         return ([tree[key]] if include_root else []) +lis
     return lis
 
@@ -80,6 +82,6 @@ def gather_batch_parents(tree, elems, max_length, key='tokenized_inputs', empty_
                                       key=key, include_root=include_root)[:max_length]
 
         parent_attrs = parent_attrs + [empty_elem]*(max_length-len(parent_attrs))
-        mask.append([[0]*len(parent_attrs) + [1]*(max_length-len(parent_attrs))]) 
+        mask.append([0]*len(parent_attrs) + [1]*(max_length-len(parent_attrs))) 
         batch.append(parent_attr)
     return jnp.asarray(batch, dtype=jnp.float32), jnp.asarray(mask, dtype=jnp.int16)
