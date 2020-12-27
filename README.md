@@ -1,4 +1,4 @@
-## AutoRegressive MLM
+# AutoRegressive MLM
 
 We build upone [this](https://github.com/deterministic-algorithms-lab/NLP-Journey) original repo to allow for an AutoRegressive MLM model. In social media platforms, like Reddit, we see a tree of comments forming, with the post at the root. The task now is to condition the MLM prediction of a masked tokens in any particular comment on the post and all the comments on the shortest path from the root to the comment. We try to do the same, using an encoder-decoder like architecture, while making the following modifications :
 
