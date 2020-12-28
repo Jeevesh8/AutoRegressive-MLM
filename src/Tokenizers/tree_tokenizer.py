@@ -11,7 +11,8 @@ class Tree_Tokenizer:
     def __init__(self, config):
         self.tokenizer = Tokenizer(BPE())
         self.tokenizer.pre_tokenizer = Whitespace()
-        self.trainer = BpeTrainer(special_tokens=['<s>', '</s>', '<unk>', '<pad>', '<mask>', '<url>'])
+        self.dms = self.get_discourse_markers(config['discourse_markers_file'])
+        self.trainer = BpeTrainer(special_tokens=['<s>', '</s>', '<unk>', '<pad>', '<mask>', '<url>']+self.dms)
         self.config = config
 
     def train_tokenizer(self, data_files=None, binary_iterator=None, str_iter=None):
@@ -83,3 +84,9 @@ class Tree_Tokenizer:
             comment['tokenized_inputs']=token_ids[i]
         
         return tree
+    
+    def get_discourse_markers(self, filename):
+        with open(filename) as f:
+            dms = f.readlines()[2:]
+            dms = [elem.split(' ', 1)[1].rstrip('\n') for elem in dms]
+        return dms
