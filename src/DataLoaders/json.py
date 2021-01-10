@@ -38,7 +38,7 @@ class load_reddit_data:
             
         for comment in post_tree['comments']:
             
-            if 'replies' in comment and comment['replies'] != '':
+            if 'replies' in comment and comment['replies'] != '' and comment['replies'] is not None:
                 comment['replies'] = comment['replies']['data']['children']
             else:
                 comment['replies'] = []
@@ -54,9 +54,19 @@ class load_reddit_data:
         tree = self.remove_redundant(tree)
         tree['selftext'] = self.clean_text(tree['selftext'])
         tree['title'] = self.clean_text(tree['title'])
+        
+        empty_comments = []
         for id, comment in tree['comments'].items():
-            comment['body'] = self.clean_text(comment['body'])
-            comment['parent_id'] = comment['parent_id'][3:]
+            if 'body' in comment and 'parent_id' in comment:
+                comment['body'] = self.clean_text(comment['body'])
+                comment['parent_id'] = comment['parent_id'][3:]
+            else: 
+                empty_comments.append(id)
+                print('deleting empty comment :', id , tree['comments'][id])
+                
+        for id in empty_comments:
+            tree['comments'].pop(id)
+        
         return tree
     
     def tree_generator(self):

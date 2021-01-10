@@ -35,6 +35,7 @@ def mask_batch_mlm(key, config, batch_token_ids):
                                 random_words, 
                                 batch_token_ids)
     
+    x = batch_token_ids
     discourse_marker_locs = jnp.asarray([ [ (x[i][j] in config['dsm_list']) 
                                                         for j in range(x.shape[1])
                                           ]             for i in range(x.shape[0])
