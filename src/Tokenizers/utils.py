@@ -32,9 +32,12 @@ def tree_to_batch(tree, batch_size, key='tokenized_inputs', empty_elem='', inclu
 
     elems += [empty_elem]*( batch_size-(len(elems)%batch_size) )
     
-    batches = [jnp.asarray(elems[i*(batch_size) : (i+1)*batch_size], dtype=jnp.int16) 
+    batches = [elems[i*(batch_size) : (i+1)*batch_size]
                 for i in range(len(elems)//batch_size)]
     
+    if key is not None:
+        batches = [jnp.asarray(elem, dtype=jnp.int16) for elem in batches]
+
     return batches
 
 def batch_to_tree(tree, batches, batch_size, key='comment_embds', include_root=True):
@@ -83,5 +86,5 @@ def gather_batch_parents(tree, elems, max_length, key='tokenized_inputs', empty_
 
         parent_attrs = parent_attrs + [empty_elem]*(max_length-len(parent_attrs))
         mask.append([0]*len(parent_attrs) + [1]*(max_length-len(parent_attrs))) 
-        batch.append(parent_attr)
+        batch.append(parent_attrs)
     return jnp.asarray(batch, dtype=jnp.float32), jnp.asarray(mask, dtype=jnp.int16)
