@@ -62,15 +62,64 @@ class load_reddit_data:
                 comment['parent_id'] = comment['parent_id'][3:]
             else: 
                 empty_comments.append(id)
-                print('deleting empty comment :', id , tree['comments'][id])
+                print('Skipping empty comment : ', id , tree['comments'][id])
                 
         for id in empty_comments:
             tree['comments'].pop(id)
         
         return tree
     
+    def new_branch_tree(self, tree, ids):
+        """
+        Returns a new tree, consisting of first few comments, 
+        specified by ids and the OP's text & title.
+        """
+        branch_tree = {}
+        branch_tree['selftext'] = tree['selftext']
+        branch_tree['title'] = tree['title']
+        branch_tree['id'] = tree['id']
+        branch_tree['comments'] = {}
+        for id in ids[1:]:
+            branch_tree['comments'][id] = tree['comments'][id]
+        return branch_tree
+    
+    def add_children(self, tree, branch_tree, id):
+        """
+        Adds entire comments subtree rooted at id in tree, to branch_tree.
+        """
+        if id in tree['comments']:
+            branch_tree['comments'][id] = tree['comments'][id]
+            for id in branch_tree['comments'][id]['replies']:
+                self.add_children(tree, branch_tree, id) 
+        
+    def branch_generator(self, tree, ids, init_tree):
+        """
+        Picks a branch followed by subtree such that total size
+        is less than config['max_tree_size']
+        """
+        if len(tree['comments'])<=self.config['max_tree_size']:
+            yield tree
+        else :
+            top_level_comments = []
+            for id, comment in tree['comments'].items():
+                if comment['parent_id']==ids[-1]:
+                    top_level_comments.append(id)
+            
+            if len(top_level_comments)==0:
+                yield None
+
+            for id in top_level_comments:
+                branch_tree = self.new_branch_tree(init_tree, ids)
+                self.add_children(tree, branch_tree, id)
+                ids.append(id)
+                for sub_branch in self.branch_generator(branch_tree, ids, init_tree):
+                    yield sub_branch
+                ids = ids[:-1]
+            
     def tree_generator(self):
         for data in self.file_loader():
             for tree in data:
-                yield self.cleaning_pipeline(tree)
-    
+                tree = self.cleaning_pipeline(tree)
+                for branch in self.branch_generator(tree, [tree['id']], tree):
+                    if branch is not None:
+                        yield branch
