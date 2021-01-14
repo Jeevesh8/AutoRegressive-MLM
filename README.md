@@ -14,6 +14,9 @@ We build upone [this](https://github.com/deterministic-algorithms-lab/NLP-Journe
 
 **To Try :** Adding positional encodings to the output of the encoder.  
 
+# Detailed Explanation
+
+See [here](https://github.com/Jeevesh8/AutoRegressive-MLM/blob/main/AutoRegressive_MLM.pdf) for a detailed explanation and model architecture.
 ------------------------------------------------------------------------------------------------------------------------------
 # Original README.md (NLP-Journey)
 
