@@ -4,10 +4,10 @@ import jax
 import optax
 import numpy as np
 
-def make_lr_schedule(warmup_percentage, total_steps):
+def make_lr_schedule(warmup_percentage, total_steps, restart_from=0):
     
     def lr_schedule(step):
-        percent_complete = step/total_steps
+        percent_complete = (step+restart_from)/total_steps
         
         #0 or 1 based on whether we are before peak
         before_peak = jax.lax.convert_element_type((percent_complete<=warmup_percentage),
@@ -24,7 +24,7 @@ def make_lr_schedule(warmup_percentage, total_steps):
 def get_adam_opt(config):
     total_steps = config['total_steps']*config['n_epochs']
 
-    lr_schedule = make_lr_schedule(warmup_percentage=0.1, total_steps=total_steps)
+    lr_schedule = make_lr_schedule(warmup_percentage=0.1, total_steps=total_steps, restart_from=config['restart_from'])
 
     opt = optax.chain(
             optax.clip_by_global_norm(config['max_grad_norm']),
