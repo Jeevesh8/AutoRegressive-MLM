@@ -62,11 +62,20 @@ class load_reddit_data:
                 comment['parent_id'] = comment['parent_id'][3:]
             else: 
                 empty_comments.append(id)
-                print('Skipping empty comment : ', id , tree['comments'][id])
-                
+                print('Skipping empty comment : ', id, tree['comments'][id])
+
+        empty_comments_dict = {}
         for id in empty_comments:
+            empty_comments_dict[id] = tree['comments'][id]
             tree['comments'].pop(id)
         
+        #Children of empty comments are assigned to their parents
+        for id, comment in tree['comments'].items():
+            parent_id = comment['parent_id']
+            while parent_id in empty_comments:
+                parent_id = empty_comments_dict[parent_id]['parent_id'][3:]
+            comment['parent_id'] = parent_id if parent_id in tree['comments'] else tree['id']
+                
         return tree
     
     def new_branch_tree(self, tree, ids):
