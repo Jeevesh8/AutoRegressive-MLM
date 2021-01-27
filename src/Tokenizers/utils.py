@@ -84,7 +84,7 @@ def gather_batch_parents(tree, elems, max_length, key='tokenized_inputs', empty_
         parent_attrs = gather_parents(tree, elem, 
                                       key=key, include_root=include_root)[:max_length]
 
-        parent_attrs = parent_attrs + [empty_elem]*(max_length-len(parent_attrs))
         mask.append([0]*len(parent_attrs) + [1]*(max_length-len(parent_attrs))) 
+        parent_attrs = parent_attrs + [empty_elem]*(max_length-len(parent_attrs))
         batch.append(parent_attrs)
     return jnp.asarray(batch, dtype=jnp.float32), jnp.asarray(mask, dtype=jnp.int16)

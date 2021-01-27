@@ -223,3 +223,25 @@ class ExtendedEncoder(hk.Module):
                                                          training=training)
         
         return hk.Linear(output_size=self.config['vocab_size'])(new_embds)
+
+class AutoRegressiveClassifier(hk.Module):
+    
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+    
+    def get_mask(self, token_ids):
+        return (jnp.bitwise_or(token_ids==self.config['pad_id'], 
+                               token_ids==self.config['mask_id'])).astype(jnp.float32)
+    
+    def __call__(self, comment_embds, comments_mask, masked_token_ids, training=False):
+        
+        y = Embedding(self.config)(masked_token_ids, lang_ids=None, training=training)
+
+        tgt_mask = self.get_mask(masked_token_ids)
+
+        new_embds = TransformerDecoderBlock(self.config)(y, tgt_mask, 
+                                                         comments_mask, comment_embds,
+                                                         training=training)
+        
+        return hk.Linear(output_size=self.config['n_classes'])(new_embds)

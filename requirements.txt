@@ -2,3 +2,5 @@ git+https://github.com/deepmind/dm-haiku
 git+git://github.com/deepmind/optax.git
 tokenizers==0.10.0rc1
 jsonlist
+beautifulsoup4
+lxml
