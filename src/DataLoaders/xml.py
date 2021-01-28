@@ -2,8 +2,9 @@ import os, re
 from bs4 import BeautifulSoup
 
 class load_xml_data:
-    def __init__(self, config):
+    def __init__(self, config, split='train/'):
         self.config = config
+        self.split = split
     
     def clean_text(self, text):
         
@@ -22,7 +23,8 @@ class load_xml_data:
         Each file that is loaded is returned as 
         a string of all the xml data inside it.
         """
-        for folder in self.config['data_folders']:
+        for fol in self.config['data_folders']:
+            folder = os.path.join(fol, self.split)
             for f in os.listdir(folder):
                 filename = os.path.join(folder, f)
                 if os.path.isfile(filename) and filename.endswith('.xml'):
