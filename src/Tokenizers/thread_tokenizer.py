@@ -36,7 +36,7 @@ class Thread_Tokenizer:
         #self.tokenizer.enable_padding(pad_id=self.tokenizer.token_to_id('<pad>'),
         #                              length=self.config['max_length'])
         
-        self.tokenizer.enable_truncation(self.config['max_length']-1)
+        self.tokenizer.enable_truncation(self.config['max_length'])
 
         self.tokenizer.post_processor = TemplateProcessing(single = "$A:1",
                                                            pair = "<s>:1 $A:1 </s>:1 </s>:2 $B:2 </s>:2",
