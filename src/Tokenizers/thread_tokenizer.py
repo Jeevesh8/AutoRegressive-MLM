@@ -33,8 +33,8 @@ class Thread_Tokenizer:
         return str_iter()
     
     def set_up_tokenizer(self):
-        self.tokenizer.enable_padding(pad_id=self.tokenizer.token_to_id('<pad>'),
-                                      length=self.config['max_length'])
+        #self.tokenizer.enable_padding(pad_id=self.tokenizer.token_to_id('<pad>'),
+        #                              length=self.config['max_length'])
         
         self.tokenizer.enable_truncation(self.config['max_length']-1)
 
@@ -77,6 +77,10 @@ class Thread_Tokenizer:
         for part, typ in zip(parts, type_ids):
             tokenized_str+=part
             tokenwise_type_ids+=[typ]*len(part)
+        
+        if len(tokenized_str)<self.config['max_length']:
+            tokenized_str+=[self.config['pad_id']]*(self.config['max_length']-len(tokenized_str))
+            tokenwise_type_ids+=[-1]*(self.config['max_length']-len(tokenized_str))
         
         tokens = jnp.asarray(tokenized_str[:self.config['max_length']], dtype=jnp.int16)
         types =  jnp.asarray(tokenwise_type_ids[:self.config['max_length']], dtype=jnp.int16)
