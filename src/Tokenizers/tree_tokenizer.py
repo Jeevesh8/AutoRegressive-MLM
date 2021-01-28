@@ -47,7 +47,8 @@ class Tree_Tokenizer:
         Converts bytes string data to text. And truncates to max_len. 
         """
         max_len = self.config['max_length']
-        return [ ' '.join(text.decode('utf-8').split()[:max_len]) if isinstance(text, bytes) else text[:max_len]
+        return [ ' '.join(text.decode('utf-8').split()[:max_len] if isinstance(text, bytes) 
+                                                                 else text.split()[:max_len])
              for text in batch_text ]
 
     def batch_encode_plus(self, batch1, batch2=None):
