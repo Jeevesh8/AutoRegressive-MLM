@@ -81,7 +81,7 @@ class Thread_Tokenizer:
         
         if len(tokenized_str)<self.config['max_length']:
             tokenized_str+=[self.config['pad_id']]*(self.config['max_length']-len(tokenized_str))
-            tokenwise_type_ids+=[-1]*(self.config['max_length']-len(tokenized_str))
+            tokenwise_type_ids+=[-1]*(self.config['max_length']-len(tokenwise_type_ids))
         
         tokens = jnp.asarray(tokenized_str[:self.config['max_length']], dtype=jnp.int16)
         types =  jnp.asarray(tokenwise_type_ids[:self.config['max_length']], dtype=jnp.int16)
