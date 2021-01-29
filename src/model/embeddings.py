@@ -2,14 +2,16 @@ import haiku as hk
 import jax.numpy as jnp
 import jax
 import numpy as np
+from src.model.utils import Scope
 
 class Embedding(hk.Module):
     
     def __init__(self, config):
         super().__init__()
         self.config = config
-
-
+        self.pt = 'pretrained' in config
+        self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, 'embeddings/')
+    
     def __call__(self, token_ids, lang_ids=None, training=False):
         """
         token_ids: ints of shape (batch, n_seq)
@@ -18,7 +20,8 @@ class Embedding(hk.Module):
         flat_token_ids = jnp.reshape(token_ids, [-1])
         
         flat_token_embeddings = hk.Embed(vocab_size=self.config['vocab_size'],
-                                         embed_dim=self.config['d_model'])(flat_token_ids)
+                                         embed_dim=self.config['d_model'],
+                                         w_init=self.pt_wts['word_embeddings'],)(flat_token_ids)
 
         token_embeddings = jnp.reshape(flat_token_embeddings, [token_ids.shape[0], -1, self.config['d_model']])
         
@@ -29,7 +32,9 @@ class Embedding(hk.Module):
         
         embeddings = hk.LayerNorm(axis=-1,
                                   create_scale=True,
-                                  create_offset=True,)(embeddings)
+                                  create_offset=True,
+                                  scale_init=self.pt_wts['LayerNorm/gamma'],
+                                  offset_init=self.pt_wts['LayerNorm/beta'],)(embeddings)
         if training:
             embeddings = hk.dropout(hk.next_rng_key(),
                                     rate=self.config['embed_dropout_rate'],
