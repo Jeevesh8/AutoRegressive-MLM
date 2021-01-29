@@ -20,6 +20,7 @@ class load_reddit_data:
         text = re.sub(r'&gt;.*(?!(\n+))$', '', text)                                    #To remove quotes at last.
         text = text.rstrip(' _\n\t')
         text = re.sub(r'\n', '', text)
+        text = text.lower()
         return text
     
     def remove_redundant(self, post_tree):
