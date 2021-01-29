@@ -51,6 +51,8 @@ class PositionEmbeddings(hk.Module):
         super().__init__()
         self.config = config
         self.offset = 0
+        self.pt = 'pretrained' in config
+        self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, 'embeddings/')
 
     def get_init_pe(self):
         
@@ -66,12 +68,18 @@ class PositionEmbeddings(hk.Module):
         
         return pe
 
-
+    def get_init(self):
+        pretrained_embeds = self.pt_wts['position_embeddings']
+        if pretrained_embeds is not None:
+            return pretrained_embeds
+        else:
+            return self.get_init_pe()
+    
     def __call__(self):
         
         position_weights = hk.get_parameter("position_embeddings",
                                             [self.config['max_length'], self.config['d_model']],
-                                            init=hk.initializers.Constant(self.get_init_pe()))
+                                            init=hk.initializers.Constant(self.get_init()))
         
         start = self.offset
         end = self.offset+self.config['max_length']
