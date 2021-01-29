@@ -5,11 +5,22 @@ class load_reddit_data:
     
     def __init__(self, config):
         self.config = config
-        
+        self.mask_dms = True
+        self.dms = self.get_discourse_markers(config['discourse_markers_file'])
+
     def file_loader(self):
         for f in self.config['data_files']:
             yield jsonlist.load_file(f)
     
+    def mask_disc_markers(self, text):
+        punctuations = ".?!;:-()\'\"[]"
+        for elem in punctuations:
+            text = text.replace(elem, ' '+elem+' ')
+        text = ' '+text+' '
+        for dm in self.dms:
+            text.replace(' '+dm+' ', ' <mask> '*len(dm.split()))
+        return text
+
     def clean_text(self, text):
         
         text = text.strip(' _\t\n')
@@ -20,6 +31,9 @@ class load_reddit_data:
         text = re.sub(r'&gt;.*(?!(\n+))$', '', text)                                    #To remove quotes at last.
         text = text.rstrip(' _\n\t')
         text = re.sub(r'\n', '', text)
+        text = text.lower()
+        if self.mask_dms:
+            text = self.mask_disc_markers(text)
         return text
     
     def remove_redundant(self, post_tree):
@@ -132,3 +146,9 @@ class load_reddit_data:
                 for branch in self.branch_generator(tree, [tree['id']], tree):
                     if branch is not None:
                         yield branch
+    
+    def get_discourse_markers(self, filename):
+        with open(filename) as f:
+            dms = f.readlines()[2:]
+            dms = [elem.split(' ', 1)[1].rstrip('\n') for elem in dms]
+        return dms
