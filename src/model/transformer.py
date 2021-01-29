@@ -1,5 +1,6 @@
 import haiku as hk
 import jax.numpy as jnp
+import numpy as np
 import jax
 from src.model.embeddings import Embedding
 from src.model.utils import Scope
@@ -44,22 +45,28 @@ class TransformerBlock(hk.Module):
 
 class TransformerDecoderBlock(hk.Module):
 
-    def __init__(self, config):
+    def __init__(self, config, layer_num):
         super().__init__()
         self.config = config
+        self.n = layer_num
+        self.pt = 'pretrained' in config
+        self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'encoder/layer_{self.n}/')
     
     def __call__(self, y, tgt_mask, src_mask, x_embds, training=False):
 
-        attention_output = MultiHeadAttention(self.config)(y, y, tgt_mask,
-                                                           training=training, is_autoregressive=False)
+        attention_output = MultiHeadAttention(self.config, self.n)(y, y, tgt_mask,
+                                                                  training=training, 
+                                                                  is_autoregressive=False)
         
         residual = attention_output+y
 
         self_attention_output = hk.LayerNorm(axis=-1,
                                              create_scale=True,
-                                             create_offset=True,)(residual)
+                                             create_offset=True,
+                                             scale_init=self.pt_wts['attention/output/LayerNorm/gamma'],
+                                             offset_init=self.pt_wts['attention/output/LayerNorm/beta'],)(residual)
         
-        attention_output = MultiHeadAttention(self.config)(x_embds, self_attention_output, src_mask,
+        attention_output = MultiHeadAttention(self.config)(x_embds, self_attention_output, src_mask, 
                                                            training=training, is_autoregressive=False)
         
         residual = attention_output+self_attention_output
@@ -68,13 +75,15 @@ class TransformerDecoderBlock(hk.Module):
                                         create_scale=True,
                                         create_offset=True,)(residual)
         
-        mlp_output = TransformerMLP(self.config)(attention_output, training=training)
+        mlp_output = TransformerMLP(self.config, self.n)(attention_output, training=training)
 
         output_residual = mlp_output+attention_output
 
         layer_output = hk.LayerNorm(axis=-1,
                                     create_scale=True,
-                                    create_offset=True,)(output_residual)
+                                    create_offset=True,
+                                    scale_init=self.pt_wts['output/LayerNorm/gamma'],
+                                    offset_init=self.pt_wts['output/LayerNorm/beta'],)(output_residual)
         
         return layer_output
 
@@ -227,8 +236,10 @@ class VaswaniTransformer(hk.Module):
 
         y = Embedding(self.config)(tgt_token_ids, lang_ids=tgt_lang_ids, training=training)
 
-        tgt_features = TransformerDecoderBlock(self.config)(y, tgt_mask, src_mask, x_embds, training=training)
-
+        for layer_num in range(config['n_layers']):
+            y = TransformerDecoderBlock(self.config, layer_num)(y, tgt_mask, src_mask, x_embds, training=training)
+        
+        tgt_features = y
         logits = hk.Linear(output_size=self.config['tgt_vocab_size'])(tgt_features)
 
         return logits
@@ -238,19 +249,35 @@ class ExtendedEncoder(hk.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-    
+        self.pt = 'pretrained' in config
+        self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'model/masked-language-model/')
+        self.embed_layer = Embedding(self.config)
+
+    def init_final_layer_bias(self):
+        b = self.pt_wts['output_bias']
+        n_extra = len(self.config['extra_tokens'])
+        extra_b = jnp.zeros((n_extra,), dtype=b.dtype)
+        return jnp.concatenate([b,extra_b], axis=0)
+
     def get_mask(self, token_ids):
         return (jnp.bitwise_or(token_ids==self.config['pad_id'], 
                                token_ids==self.config['mask_id'])).astype(jnp.float32)
     
     def __call__(self, comment_embds, comments_mask, masked_token_ids, training=False):
         
-        y = Embedding(self.config)(masked_token_ids, lang_ids=None, training=training)
+        y = self.embed_layer(masked_token_ids, lang_ids=None, training=training)
 
         tgt_mask = self.get_mask(masked_token_ids)
 
-        new_embds = TransformerDecoderBlock(self.config)(y, tgt_mask, 
-                                                         comments_mask, comment_embds,
-                                                         training=training)
+        for layer_num in range(config['n_layers']):
+            y = TransformerDecoderBlock(self.config, layer_num+6)(y, tgt_mask, 
+                                                                  comments_mask, comment_embds,
+                                                                  training=training)
         
-        return hk.Linear(output_size=self.config['vocab_size'])(new_embds)
+        if self.pt:
+            logits = self.embed_layer.word_emb_layer.embeddings*y + hk.get_parameter('output_bias', 
+                                                                    [self.config['vocab_size']], 
+                                                                    w_init=hk.initializers.Constant(self.init_final_layer_bias()))
+        else:
+            logits = hk.Linear(output_size=config['vocab_size'],)(y)
+        return logits

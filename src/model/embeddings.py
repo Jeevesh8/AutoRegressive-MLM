@@ -11,7 +11,23 @@ class Embedding(hk.Module):
         self.config = config
         self.pt = 'pretrained' in config
         self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, 'embeddings/')
+        
+        if self.pt:
+            self.word_emb_layer = hk.Embed(embedding_matrix=self.make_pt_init_wts())
+        else:
+            self.word_emb_layer = hk.Embed(vocab_size=config['vocab_size'],
+                                           embed_dim=config['d_model'])
     
+    def make_pt_init_wts(self):
+        w = self.pt_wts['word_embeddings']
+        stddev = 1. / np.sqrt(self.config['d_model'])
+        
+        n_extra = len(self.config['extra_tokens'])
+        key, subkey = jax.random.split( jax.random.PRNGKey(42) )
+        extra_w = stddev*jax.random.truncated_normal(subkey, -2., 2., 
+                                                     shape=[n_extra, self.config['d_model']])        
+        return jnp.concatenate([w, extra_w], axis=0)
+        
     def __call__(self, token_ids, lang_ids=None, training=False):
         """
         token_ids: ints of shape (batch, n_seq)
@@ -19,9 +35,7 @@ class Embedding(hk.Module):
         
         flat_token_ids = jnp.reshape(token_ids, [-1])
         
-        flat_token_embeddings = hk.Embed(vocab_size=self.config['vocab_size'],
-                                         embed_dim=self.config['d_model'],
-                                         w_init=self.pt_wts['word_embeddings'],)(flat_token_ids)
+        flat_token_embeddings = self.word_emb_layer(flat_token_ids)
 
         token_embeddings = jnp.reshape(flat_token_embeddings, [token_ids.shape[0], -1, self.config['d_model']])
         

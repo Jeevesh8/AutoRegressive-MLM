@@ -64,6 +64,7 @@ class Tree_Tokenizer:
         self.extra_tokens = ['<url>']+self.get_missing_dms(self, vocab) #Tokens to add to RoBertA vocab
         for word in self.extra_tokens:
             vocab[word] = len(vocab)
+        self.config['extra_tokens'] = self.extra_tokens
         return vocab
 
     def train_tokenizer(self, data_files=None, binary_iterator=None, str_iter=None):
