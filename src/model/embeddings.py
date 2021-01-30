@@ -85,7 +85,7 @@ class PositionEmbeddings(hk.Module):
     def get_init(self):
         pretrained_embeds = self.pt_wts['position_embeddings']
         if pretrained_embeds is not None:
-            return pretrained_embeds
+            return pretrained_embeds.constant
         else:
             return self.get_init_pe()
     

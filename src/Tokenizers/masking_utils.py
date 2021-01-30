@@ -37,7 +37,7 @@ def mask_batch_mlm(config, key, batch_token_ids):
                                 random_words, 
                                 batch_token_ids)
     
-    if 'pretrained' not in conifg:
+    if 'pretrained' not in config:
         x = batch_token_ids
         discourse_marker_locs = reduce(lambda carry, i: jnp.bitwise_or(carry, x==i),
                                    config['dsm_list'], jnp.zeros_like(x))
