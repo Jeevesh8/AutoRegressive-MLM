@@ -1,5 +1,5 @@
 git+https://github.com/deepmind/dm-haiku
 git+git://github.com/deepmind/optax.git
 transformers
-tokenizers==0.10.0rc1
+tokenizers==0.9.4
 jsonlist
