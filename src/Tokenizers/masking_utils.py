@@ -3,8 +3,10 @@ import jax.numpy as jnp
 import random
 from functools import partial, reduce
 
-@partial(jax.jit, static_argnums=(1,))
-def mask_batch_mlm(key, config, batch_token_ids):
+def get_masking_func(config):
+    return jax.jit(partial(mask_batch_mlm, config=config))
+
+def mask_batch_mlm(config, key, batch_token_ids):
     """
     Random replacement of tokens with mask or other tokens from vocabulary.
     batch_token_ids : numpy tensor of ints
@@ -35,11 +37,12 @@ def mask_batch_mlm(key, config, batch_token_ids):
                                 random_words, 
                                 batch_token_ids)
     
-    x = batch_token_ids
-    discourse_marker_locs = reduce(lambda carry, i: jnp.bitwise_or(carry, x==i),
+    if 'pretrained' not in conifg:
+        x = batch_token_ids
+        discourse_marker_locs = reduce(lambda carry, i: jnp.bitwise_or(carry, x==i),
                                    config['dsm_list'], jnp.zeros_like(x))
     
-    batch_token_ids = jnp.where( discourse_marker_locs, config['mask_id'], batch_token_ids)
+        batch_token_ids = jnp.where( discourse_marker_locs, config['mask_id'], batch_token_ids)
     
     return batch_token_ids, original_batch
 

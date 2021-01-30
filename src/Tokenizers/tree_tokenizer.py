@@ -4,7 +4,7 @@ from tokenizers.pre_tokenizers import Whitespace
 from tokenizers.trainers import BpeTrainer
 from tokenizers.processors import TemplateProcessing
 import jax.numpy as jnp
-
+import json
 
 class Tree_Tokenizer:
     
@@ -38,7 +38,7 @@ class Tree_Tokenizer:
         return json_tok
     
     def get_vocab_merges(self):
-        self.config['hf_pt_tokenizer'].save_vocabulary('.')
+        self.config['pt_hf_tokenizer'].save_vocabulary('.')
 
         with open('./vocab.json') as f:
             roberta_vocab = json.load(f)
@@ -53,15 +53,15 @@ class Tree_Tokenizer:
     
     def get_missing_dms(self, vocab):
         missing = []
-        vocab = [key[1:] if key.startswith('Ġ') else key for key in roberta_vocab.keys()]
-        for dm in dms:
+        vocab = [key[1:] if key.startswith('Ġ') else key for key in vocab.keys()]
+        for dm in self.dms:
             for word in dm.split():
                 if word not in vocab and word not in missing:
                     missing.append(word)
         return missing
     
     def add_tokens(self, vocab):
-        self.extra_tokens = ['<url>']+self.get_missing_dms(self, vocab) #Tokens to add to RoBertA vocab
+        self.extra_tokens = ['<url>']+self.get_missing_dms(vocab)       #Tokens to add to RoBertA vocab
         for word in self.extra_tokens:
             vocab[word] = len(vocab)
         self.config['extra_tokens'] = self.extra_tokens
