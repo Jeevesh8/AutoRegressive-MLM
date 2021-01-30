@@ -275,7 +275,8 @@ class ExtendedEncoder(hk.Module):
                                                                   training=training)
         
         if self.pt:
-            logits = self.embed_layer.word_emb_layer.embeddings*y + hk.get_parameter('output_bias', 
+            w = self.embed_layer.word_emb_layer.embeddings
+            logits = jnp.tensordot(y, w, (-1,-1)) + hk.get_parameter('output_bias', 
                                                                     [self.config['vocab_size']], 
                                                                     w_init=hk.initializers.Constant(self.init_final_layer_bias()))
         else:
