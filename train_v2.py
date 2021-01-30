@@ -56,7 +56,7 @@ config = {
 
 """## Loading Pre-Trained Weights"""
 
-!pip install tokenizers==0.9.4 transformers
+#!pip install tokenizers==0.9.4 transformers
 
 from io import BytesIO
 from functools import lru_cache
