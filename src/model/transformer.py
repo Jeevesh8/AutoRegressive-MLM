@@ -254,7 +254,7 @@ class ExtendedEncoder(hk.Module):
         self.embed_layer = Embedding(self.config)
 
     def init_final_layer_bias(self):
-        b = self.pt_wts['output_bias']
+        b = self.pt_wts['output_bias'].constant
         n_extra = len(self.config['extra_tokens'])
         extra_b = jnp.zeros((n_extra,), dtype=b.dtype)
         return jnp.concatenate([b,extra_b], axis=0)
