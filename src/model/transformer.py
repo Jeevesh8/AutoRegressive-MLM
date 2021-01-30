@@ -236,7 +236,7 @@ class VaswaniTransformer(hk.Module):
 
         y = Embedding(self.config)(tgt_token_ids, lang_ids=tgt_lang_ids, training=training)
 
-        for layer_num in range(config['n_layers']):
+        for layer_num in range(self.config['n_layers']):
             y = TransformerDecoderBlock(self.config, layer_num)(y, tgt_mask, src_mask, x_embds, training=training)
         
         tgt_features = y
@@ -269,7 +269,7 @@ class ExtendedEncoder(hk.Module):
 
         tgt_mask = self.get_mask(masked_token_ids)
 
-        for layer_num in range(config['n_layers']):
+        for layer_num in range(self.config['n_layers']):
             y = TransformerDecoderBlock(self.config, layer_num+6)(y, tgt_mask, 
                                                                   comments_mask, comment_embds,
                                                                   training=training)
