@@ -111,7 +111,7 @@ class MultiHeadAttention(hk.Module):
         
         keys = hk.Linear(output_size=self.config['d_model'],
                         w_init=self.pt_wts['key/kernel'],
-                        b_init=self.pt_wts['key/kernel'])(x)
+                        b_init=self.pt_wts['key/bias'])(x)
         
         values = hk.Linear(output_size=self.config['d_model'],
                            w_init=self.pt_wts['value/kernel'],
