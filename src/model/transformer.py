@@ -11,7 +11,7 @@ class TransformerBlock(hk.Module):
         super().__init__()
         self.config = config
         self.n = layer_num
-        self.pt = 'pretrained' in config
+        self.pt = 'pretrained' in config and self.n is not None
         self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'encoder/layer_{self.n}/')
     
     def get_init(self, elem):
@@ -49,7 +49,7 @@ class TransformerDecoderBlock(hk.Module):
         super().__init__()
         self.config = config
         self.n = layer_num
-        self.pt = 'pretrained' in config
+        self.pt = 'pretrained' in config and self.n is not None
         self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'encoder/layer_{self.n}/')
     
     def __call__(self, y, tgt_mask, src_mask, x_embds, training=False):
@@ -157,7 +157,7 @@ class TransformerMLP(hk.Module):
         super().__init__()
         self.config = config
         self.n = layer_num
-        self.pt = 'pretrained' in config
+        self.pt = 'pretrained' in config and self.n is not None
         self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'encoder/layer_{self.n}/')
 
     def __call__(self, x, training=False):
