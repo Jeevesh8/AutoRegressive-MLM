@@ -19,7 +19,7 @@ class Embedding(hk.Module):
                                            embed_dim=config['d_model'])
     
     def make_pt_init_wts(self):
-        w = self.pt_wts['word_embeddings']
+        w = self.pt_wts['word_embeddings'].constant
         stddev = 1. / np.sqrt(self.config['d_model'])
         
         n_extra = len(self.config['extra_tokens'])

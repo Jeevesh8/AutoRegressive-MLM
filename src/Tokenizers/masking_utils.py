@@ -4,7 +4,7 @@ import random
 from functools import partial, reduce
 
 def get_masking_func(config):
-    return jax.jit(partial(mask_batch_mlm, config=config))
+    return jax.jit(partial(mask_batch_mlm, config))
 
 def mask_batch_mlm(config, key, batch_token_ids):
     """
