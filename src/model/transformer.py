@@ -92,7 +92,7 @@ class MultiHeadAttention(hk.Module):
         super().__init__()
         self.config = config
         self.n = layer_num
-        self.pt = 'pretrained' in config
+        self.pt = 'pretrained' in config and self.n is not None
         self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'encoder/layer_{self.n}/attention/')
 
     def _split_into_heads(self, x):
