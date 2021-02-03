@@ -1,3 +1,4 @@
+## For pre-training from RoBERTa initialised weights.
 import jax
 import jax.numpy as jnp
 import haiku as hk
@@ -33,8 +34,8 @@ config = {
           'n_layers' : 6,
           'hidden_size' : 768,
           'd_model' : 768,                                                      #same as hidden_size
-          'max_losses' : 8,                                                     #max. number of losses to backpropagate at once
-          'max_tree_size' : 60,
+          'max_losses' : 2,                                                     #max. number of losses to backpropagate at once
+          'max_tree_size' : 20,
           
           #Embeddings Parameters
           'embed_dropout_rate' : 0.1,
@@ -96,9 +97,8 @@ def get_pretrained_weights():
 config['pretrained'] = get_pretrained_weights()
 config['pt_hf_tokenizer'] = huggingface_tokenizer
 
-"""## Data Loaders
 
-"""
+"""## Data Loaders"""
 
 data_loader = load_reddit_data(config)
 
@@ -106,6 +106,7 @@ eval_config = deepcopy(config)
 eval_config['data_files'] = ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/heldout_period_data.jsonlist']
 
 eval_data_loader = load_reddit_data(eval_config)
+
 
 """## Training Tokenizer"""
 '''
@@ -118,6 +119,7 @@ def get_sentences():
 lm_tokeniser = Tree_Tokenizer(config)
 lm_tokeniser.train_tokenizer(str_iter=get_sentences())
 '''
+
 
 """## Or Load Pre-Trained Tokenizer"""
 
@@ -138,10 +140,11 @@ config['sos_id'] = lm_tokeniser.tokenizer.token_to_id("<s>")
 config['eos_id'] = lm_tokeniser.tokenizer.token_to_id("</s>")
 config['dsm_list'] = [lm_tokeniser.tokenizer.token_to_id(token)
                             for token in lm_tokeniser.dms]
-config['total_steps'] = 140274 #len([0 for tree in data_loader.tree_generator()])
+config['total_steps'] = len([0 for tree in data_loader.tree_generator()])
 config = hk.data_structures.to_immutable_dict(config)
 
 print(config['total_steps'])
+
 
 """## Purifying the Model Functions and Getting Parameters"""
 
@@ -221,6 +224,7 @@ def get_logits_fn(training, config):
 featurizer_f = get_featurizer(True, config)
 logits_f = get_logits_fn(True, config)
 
+
 """## Running Model and Getting Loss"""
 
 def cross_entropy(config, original_batch, logits, masked_token_ids):
@@ -234,6 +238,7 @@ def cross_entropy(config, original_batch, logits, masked_token_ids):
         return jnp.zeros(())
     softmax_xent /= total_masks
     return softmax_xent
+
 
 """## Loss"""
 
@@ -284,15 +289,16 @@ def loss(params, key, init_tree, config, turn=0):
                                                                     config['max_length'], key='comment_embds', 
                                                                     empty_elem=empty_elem)
         key, subkey = jax.random.split(key)
-        masked_batch, original_batch = mask_batch_mlm(subkey, config, original_batch)
+        masked_batch, original_batch = mask_batch_mlm(subkey, original_batch)
 
         key, subkey = jax.random.split(key)
         logits = logits_f(params['mlm_predictor'], subkey, parent_comment_embds, 
-                             mask_for_embds, masked_batch, True, config)
+                             mask_for_embds, masked_batch)
         
         loss += cross_entropy(config, original_batch, logits, masked_batch)
     
     return loss, remaining_comments
+
 
 """## Optimizer"""
 
@@ -315,6 +321,7 @@ def update(opt_state, params, key, tree, config):
     updates, opt_state = opt.update(grad, opt_state)
     new_params = optax.apply_updates(params, updates)    
     return new_params, opt_state, batch_loss
+
 
 """## Training Loop"""
 
