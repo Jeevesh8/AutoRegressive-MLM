@@ -243,8 +243,9 @@ class AutoRegressiveClassifier(hk.Module):
         new_embds = TransformerDecoderBlock(self.config)(y, tgt_mask, 
                                                          comments_mask, comment_embds,
                                                          training=training)
-        new_embds = hk.dropout(rng=hk.next_rng_key(),
-                               rate=self.config['classifier_drop_rate'],
-                               x=new_embds)
+        if training:
+            new_embds = hk.dropout(rng=hk.next_rng_key(),
+                                   rate=self.config['classifier_drop_rate'],
+                                   x=new_embds)
 
         return hk.Linear(output_size=self.config['n_classes'])(new_embds)
