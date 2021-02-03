@@ -274,9 +274,7 @@ class ExtendedEncoder(hk.Module):
                                                                   comments_mask, comment_embds,
                                                                   training=training)
         
-        if self.pt:
-            w = self.embed_layer.word_emb_layer.embeddings
-            logits = jnp.tensordot(y, w, (-1,-1))
-        else:
-            logits = hk.Linear(output_size=config['vocab_size'],)(y)
+        w = self.embed_layer.word_emb_layer.embeddings
+        logits = jnp.tensordot(y, w, (-1,-1))
+        
         return logits
