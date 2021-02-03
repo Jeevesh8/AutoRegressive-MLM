@@ -29,7 +29,7 @@ def get_adam_opt(config):
     opt = optax.chain(
             optax.clip_by_global_norm(config['max_grad_norm']),
             optax.adam(learning_rate=config['learning_rate']),
-            optax.scale_by_schedule(lr_schedule),
+            #optax.scale_by_schedule(lr_schedule),
         )
     
     return opt
