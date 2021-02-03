@@ -12,8 +12,61 @@ class Thread_Tokenizer:
         self.tokenizer = Tokenizer(BPE())
         self.tokenizer.pre_tokenizer = Whitespace()
         self.dms = self.get_discourse_markers(config['discourse_markers_file'])
-        self.trainer = BpeTrainer(special_tokens=['<s>', '</s>', '<unk>', '<pad>', '<mask>', '<url>']+self.dms)
         self.config = config
+        
+        if 'pt_hf_tokenizer' in self.config:
+            self.load_from_pretrained()
+        else:
+            self.trainer = BpeTrainer(special_tokens=['<s>', '</s>', '<unk>', '<pad>', '<mask>', '<url>']+self.dms)
+
+    def load_from_pretrained(self):
+        json_tok = self.save_and_modify()
+        with open('./final_tokensier.json', 'w+') as f:
+            json.dump(json_tok, f)
+        self.tokenizer = Tokenizer.from_file('./final_tokensier.json')
+        self.set_up_tokenizer()
+    
+    def save_and_modify(self):
+        
+        self.tokenizer.save('./empty_tokenizer.json')
+        
+        with open('./empty_tokenizer.json') as f:
+            json_tok = json.load(f)
+        
+        roberta_vocab, roberta_merges = self.get_vocab_merges()
+        json_tok['model']['vocab'] = roberta_vocab
+        json_tok['model']['merges'] = roberta_merges
+        return json_tok
+    
+    def get_vocab_merges(self):
+        self.config['pt_hf_tokenizer'].save_vocabulary('.')
+
+        with open('./vocab.json') as f:
+            roberta_vocab = json.load(f)
+        
+        with open('./merges.txt') as f:
+            roberta_merges = f.readlines()[1:]
+            roberta_merges = [merge.rstrip('\n') for merge in roberta_merges]
+        
+        roberta_vocab = self.add_tokens(roberta_vocab)
+
+        return roberta_vocab, roberta_merges
+    
+    def get_missing_dms(self, vocab):
+        missing = []
+        vocab = [key[1:] if key.startswith('Ġ') else key for key in vocab.keys()]
+        for dm in self.dms:
+            for word in dm.split():
+                if word not in vocab and word not in missing:
+                    missing.append(word)
+        return missing
+    
+    def add_tokens(self, vocab):
+        self.extra_tokens = ['<url>']+self.get_missing_dms(vocab)       #Tokens to add to RoBertA vocab
+        for word in self.extra_tokens:
+            vocab[word] = len(vocab)
+        self.config['extra_tokens'] = self.extra_tokens
+        return vocab
 
     def train_tokenizer(self, data_files=None, binary_iterator=None, str_iter=None):
         
