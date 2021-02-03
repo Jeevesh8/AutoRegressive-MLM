@@ -69,4 +69,6 @@ class load_xml_data:
             thread.append( self.divide_pc(parsed_xml.find('OP').contents) )
             for elem in parsed_xml.find_all('reply'):
                 thread.append( self.divide_pc(elem.contents) )
+                if len(thread)==self.config['max_tree_size']:
+                    break
             yield thread
