@@ -4,7 +4,7 @@ from tokenizers.pre_tokenizers import Whitespace
 from tokenizers.trainers import BpeTrainer
 from tokenizers.processors import TemplateProcessing
 import jax.numpy as jnp
-
+import json
 
 class Thread_Tokenizer:
     
