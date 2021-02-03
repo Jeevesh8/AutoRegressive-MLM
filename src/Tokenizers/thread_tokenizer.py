@@ -86,8 +86,8 @@ class Thread_Tokenizer:
         return str_iter()
     
     def set_up_tokenizer(self):
-        #self.tokenizer.enable_padding(pad_id=self.tokenizer.token_to_id('<pad>'),
-        #                              length=self.config['max_length'])
+        self.tokenizer.enable_padding(pad_id=self.tokenizer.token_to_id('<pad>'),
+                                      length=self.config['max_length'])
         
         self.tokenizer.enable_truncation(self.config['max_length'])
 
