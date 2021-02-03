@@ -23,3 +23,15 @@ def logits_to_ar_classifier_params(pretrained_params, classifier_params):
     pretrained_params['ar_classifier']['extended_encoder/linear'] = classifier_params['ar_classifier']['auto_regressive_classifier/linear']
     pretrained_params['ar_classifier'] = change_keys(pretrained_params['ar_classifier'], 'extended_encoder', 'auto_regressive_classifier')
     return to_immutable_dict(pretrained_params)
+
+class Scope(object):
+    """
+    A tiny utility to help make looking up into our dictionary cleaner.
+    There's no haiku magic here.
+    """
+    def __init__(self, weights, prefix):
+        self.weights = weights
+        self.prefix = prefix
+
+    def __getitem__(self, key):
+        return hk.initializers.Constant(self.weights[self.prefix + key]) if self.weights is not None else None
