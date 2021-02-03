@@ -70,9 +70,9 @@ class PositionEmbeddings(hk.Module):
 
     def get_init_pe(self):
         
-        pe = np.zeros([self.config['max_length'], self.config['d_model']])
+        pe = np.zeros([self.config['max_length']+self.offset, self.config['d_model']])
         
-        position = np.arange(0, self.config['max_length']).reshape(-1,1)
+        position = np.arange(0, self.config['max_length']+self.offset).reshape(-1,1)
         
         div_term = np.exp(np.arange(0, self.config['d_model'],2)*
                           -np.log(10000.0)/self.config['d_model'])
