@@ -65,7 +65,7 @@ class PositionEmbeddings(hk.Module):
         super().__init__()
         self.config = config
         self.pt = 'pretrained' in config
-        self.offset = 2 if self.pt else 0
+        self.offset = 2 if self.pt or 'pt_hf_tokenizer' in config else 0
         self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, 'embeddings/')
 
     def get_init_pe(self):

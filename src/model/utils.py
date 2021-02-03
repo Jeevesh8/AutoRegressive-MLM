@@ -22,6 +22,7 @@ def logits_to_ar_classifier_params(pretrained_params, classifier_params):
     pretrained_params.pop('mlm_predictor')
     pretrained_params['ar_classifier']['extended_encoder/linear'] = classifier_params['ar_classifier']['auto_regressive_classifier/linear']
     pretrained_params['ar_classifier'] = change_keys(pretrained_params['ar_classifier'], 'extended_encoder', 'auto_regressive_classifier')
+    pretrained_params['ar_classifier'] = change_keys(pretrained_params['ar_classifier'], 'auto_regressive_classifier/~/', 'auto_regressive_classifier/')
     return to_immutable_dict(pretrained_params)
 
 class Scope(object):
