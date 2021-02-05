@@ -31,7 +31,7 @@ config = {
           #Model Parameters
           'intermediate_size' : 3072,
           'n_heads' : 12,
-          'n_layers' : 6,
+          'n_layers' : 12,
           'hidden_size' : 768,
           'd_model' : 768,                                                      #same as hidden_size
           'max_losses' : 2,                                                     #max. number of losses to backpropagate at once
