@@ -24,3 +24,15 @@ ENV LD_LIBRARY_PATH /usr/local/cuda-11.0/lib64:/usr/local/cuda-11.0/extras/CUPTI
 
 RUN pip install --upgrade pip
 RUN pip install --upgrade jax jaxlib==0.1.60+cuda110 -f https://storage.googleapis.com/jax-releases/jax_releases.html
+
+RUN mkdir /content
+RUN mkdir /content/drive/
+RUN mkdir /content/drive/MyDrive
+RUN mkdir /content/drive/MyDrive/2SCL/
+RUN mkdir /content/drive/MyDrive/2SCL/Argumentation/
+RUN mkdir /content/drive/MyDrive/2SCL/Argumentation/first_batch_data/
+
+RUN git clone https://github.com/Jeevesh8/AutoRegressive-MLM/
+RUN cd AutoRegressive-MLM
+RUN git checkout PreTrain-12Layer
+RUN pip install -r requirements.txt
