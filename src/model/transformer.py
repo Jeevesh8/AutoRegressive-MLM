@@ -281,12 +281,27 @@ class ExtendedEncoder(hk.Module):
         
         return logits
 
+class GRU(hk.Module):
+    def __init__(self, hidden_size):
+        super().__init__()
+        self.gru = hk.GRU(hidden_size)
+        self.init_state = jnp.zeros(hidden_size)
+
+    def __call__(self, x):
+        state = jnp.stack([self.init_state]*x.shape[0])
+        outputs = []
+        for i in range(x.shape[1]):
+            output, state = self.gru(x[:,i,:], state)
+            outputs.append(output)
+        return jnp.stack(outputs, axis=1)
+
 class AutoRegressiveClassifier(hk.Module):
     
     def __init__(self, config):
         super().__init__()
         self.config = config
-    
+        self.last_layer = GRU(config['n_classes']) #hk.Linear(output_size=self.config['n_classes']) 
+
     def get_mask(self, token_ids):
         return (jnp.bitwise_or(token_ids==self.config['pad_id'], 
                                token_ids==self.config['mask_id'])).astype(jnp.float32)
@@ -307,5 +322,5 @@ class AutoRegressiveClassifier(hk.Module):
             new_embds = hk.dropout(rng=hk.next_rng_key(),
                                    rate=self.config['classifier_drop_rate'],
                                    x=new_embds)
-
-        return hk.Linear(output_size=self.config['n_classes'])(new_embds)
+        
+        return self.last_layer(new_embds)
