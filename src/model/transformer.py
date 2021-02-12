@@ -11,7 +11,7 @@ class TransformerBlock(hk.Module):
 
     def __init__(self, config, layer_num=None, name=None):
         if layer_num is not None:
-            name = name+layer_num
+            name = name+str(layer_num)
         super().__init__(name=name)
         self.config = config
         self.n = layer_num
@@ -54,7 +54,7 @@ class TransformerDecoderBlock(hk.Module):
 
     def __init__(self, config, layer_num, name=None):
         if layer_num is not None:
-            name = name+layer_num
+            name = name+str(layer_num)
         super().__init__(name=name)
         self.config = config
         self.n = layer_num
