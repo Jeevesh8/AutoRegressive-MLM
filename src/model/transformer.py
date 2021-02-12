@@ -4,11 +4,14 @@ import numpy as np
 import jax
 from src.model.embeddings import Embedding
 from src.model.utils import Scope
+import gin
 
+@gin.configurable
 class TransformerBlock(hk.Module):
 
-    def __init__(self, config, layer_num=None):
-        super().__init__()
+    def __init__(self, config, layer_num=None, name=None):
+        name = name+layer_num if layer_num is not None
+        super().__init__(name=name)
         self.config = config
         self.n = layer_num
         self.pt = 'pretrained' in config and self.n is not None
@@ -28,6 +31,7 @@ class TransformerBlock(hk.Module):
         attention_output = hk.LayerNorm(axis=-1,
                                         create_scale=True,
                                         create_offset=True,
+                                        name='attention_output_LayerNorm',
                                         scale_init=self.pt_wts['attention/output/LayerNorm/gamma'],
                                         offset_init=self.pt_wts['attention/output/LayerNorm/beta'],)(residual)
 
@@ -38,15 +42,18 @@ class TransformerBlock(hk.Module):
         layer_output = hk.LayerNorm(axis=-1,
                                     create_scale=True,
                                     create_offset=True,
+                                    name='output_LayerNorm',
                                     scale_init=self.pt_wts['output/LayerNorm/gamma'],
                                     offset_init=self.pt_wts['output/LayerNorm/beta'])(output_residual)
         
         return layer_output
 
+@gin.configurable
 class TransformerDecoderBlock(hk.Module):
 
-    def __init__(self, config, layer_num):
-        super().__init__()
+    def __init__(self, config, layer_num, name=None):
+        name = name+layer_num if layer_num is not None
+        super().__init__(name=name)
         self.config = config
         self.n = layer_num
         self.pt = 'pretrained' in config and self.n is not None
@@ -63,6 +70,7 @@ class TransformerDecoderBlock(hk.Module):
         self_attention_output = hk.LayerNorm(axis=-1,
                                              create_scale=True,
                                              create_offset=True,
+                                             name='attention_output_LayerNorm',
                                              scale_init=self.pt_wts['attention/output/LayerNorm/gamma'],
                                              offset_init=self.pt_wts['attention/output/LayerNorm/beta'],)(residual)
         
@@ -82,14 +90,16 @@ class TransformerDecoderBlock(hk.Module):
         layer_output = hk.LayerNorm(axis=-1,
                                     create_scale=True,
                                     create_offset=True,
+                                    name='output_LayerNorm',
                                     scale_init=self.pt_wts['output/LayerNorm/gamma'],
                                     offset_init=self.pt_wts['output/LayerNorm/beta'],)(output_residual)
         
         return layer_output
 
+@gin.configurable
 class MultiHeadAttention(hk.Module):
-    def __init__(self, config, layer_num=None):
-        super().__init__()
+    def __init__(self, config, layer_num=None, name=None):
+        super().__init__(name=name)
         self.config = config
         self.n = layer_num
         self.pt = 'pretrained' in config and self.n is not None
@@ -106,14 +116,17 @@ class MultiHeadAttention(hk.Module):
     def __call__(self, x, y, mask, training=False, is_autoregressive=False):
         
         queries = hk.Linear(output_size=self.config['d_model'],
+                            name='query'
                             w_init=self.pt_wts['query/kernel'],
                             b_init=self.pt_wts['query/bias'])(y)
         
         keys = hk.Linear(output_size=self.config['d_model'],
-                        w_init=self.pt_wts['key/kernel'],
-                        b_init=self.pt_wts['key/bias'])(x)
+                         name='key',
+                         w_init=self.pt_wts['key/kernel'],
+                         b_init=self.pt_wts['key/bias'])(x)
         
         values = hk.Linear(output_size=self.config['d_model'],
+                           name='value'
                            w_init=self.pt_wts['value/kernel'],
                            b_init=self.pt_wts['value/bias'])(x)
         
@@ -136,6 +149,7 @@ class MultiHeadAttention(hk.Module):
                                        [per_head_attention_output.shape[0], per_head_attention_output.shape[1], -1])
 
         attention_output = hk.Linear(output_size=self.config['d_model'],
+                                     name='output_dense',
                                      w_init=self.pt_wts['output/dense/kernel'],
                                      b_init=self.pt_wts['output/dense/bias'])(attention_output)
         
@@ -150,11 +164,11 @@ class MultiHeadAttention(hk.Module):
 def gelu(x):
     return x*0.5*(1.0+jax.scipy.special.erf(x / jnp.sqrt(2.0)))
 
-
+@gin.configurable
 class TransformerMLP(hk.Module):
 
-    def __init__(self, config, layer_num=None):
-        super().__init__()
+    def __init__(self, config, layer_num=None, name=None):
+        super().__init__(name=name)
         self.config = config
         self.n = layer_num
         self.pt = 'pretrained' in config and self.n is not None
@@ -163,12 +177,14 @@ class TransformerMLP(hk.Module):
     def __call__(self, x, training=False):
 
         intermediate_output = hk.Linear(output_size=self.config['intermediate_size'],
+                                        name='intermediate_dense'
                                         w_init=self.pt_wts['intermediate/dense/kernel'],
                                         b_init=self.pt_wts['intermediate/dense/bias'],)(x)
 
         intermediate_output = gelu(intermediate_output)
 
         output = hk.Linear(output_size=self.config['d_model'],
+                           name='output_dense'
                            w_init=self.pt_wts['output/dense/kernel'],
                            b_init=self.pt_wts['output/dense/bias'],)(intermediate_output)
         
@@ -179,11 +195,11 @@ class TransformerMLP(hk.Module):
         
         return output
 
-
+@gin.configurable
 class TransformerFeaturizer(hk.Module):
     
-    def __init__(self, config):
-        super().__init__()
+    def __init__(self, config, name=None):
+        super().__init__(name=name)
         self.config = config
 
     def get_mask(self, token_ids):
@@ -204,10 +220,11 @@ class TransformerFeaturizer(hk.Module):
         x = jnp.average(x, axis=1)
         return x
 
+@gin.configurable
 class LogitsTransformer(hk.Module):
 
-    def __init__(self, config):
-        super().__init__()
+    def __init__(self, config, name=None):
+        super().__init__(name=name)
         self.config = config
 
     def __call__(self, token_ids, lang_ids=None, training=False, is_autoregressive=False):
@@ -216,10 +233,11 @@ class LogitsTransformer(hk.Module):
         logits = hk.Linear(output_size=self.config['vocab_size'])(x)
         return logits
 
+@gin.configurable
 class VaswaniTransformer(hk.Module):
     
-    def __init__(self, config):
-        super().__init__()
+    def __init__(self, config, name=None):
+        super().__init__(name=name)
         self.config = config
     
     def get_mask(self, token_ids):
@@ -244,20 +262,15 @@ class VaswaniTransformer(hk.Module):
 
         return logits
 
+@gin.configurable
 class ExtendedEncoder(hk.Module):
 
-    def __init__(self, config):
-        super().__init__()
+    def __init__(self, config, name=None):
+        super().__init__(name=name)
         self.config = config
         self.pt = 'pretrained' in config
         self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'model/masked-language-model/')
         self.embed_layer = Embedding(self.config)
-
-    def init_final_layer_bias(self):
-        b = self.pt_wts['output_bias'].constant
-        n_extra = len(self.config['extra_tokens'])
-        extra_b = jnp.zeros((n_extra,), dtype=b.dtype)
-        return jnp.concatenate([b,extra_b], axis=0)
 
     def get_mask(self, token_ids):
         return (jnp.bitwise_or(token_ids==self.config['pad_id'], 

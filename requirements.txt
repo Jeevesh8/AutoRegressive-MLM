@@ -3,3 +3,4 @@ git+git://github.com/deepmind/optax.git
 transformers
 tokenizers==0.9.4
 jsonlist
+gin-config
