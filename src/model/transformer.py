@@ -15,9 +15,7 @@ class TransformerBlock(hk.Module):
         super().__init__(name=name)
         self.config = config
         self.n = layer_num
-        self.pt = 'pretrained' in config and self.n is not None
-        self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'encoder/layer_{self.n}/')
-    
+
     def get_init(self, elem):
         return  hk.initializers.Constant(elem) if self.pt else None
 
@@ -32,9 +30,7 @@ class TransformerBlock(hk.Module):
         attention_output = hk.LayerNorm(axis=-1,
                                         create_scale=True,
                                         create_offset=True,
-                                        name='attention_output_LayerNorm',
-                                        scale_init=self.pt_wts['attention/output/LayerNorm/gamma'],
-                                        offset_init=self.pt_wts['attention/output/LayerNorm/beta'],)(residual)
+                                        name='attention_output_LayerNorm',)(residual)
 
         mlp_output = TransformerMLP(self.config, self.n)(attention_output, training=training)
 
@@ -43,9 +39,7 @@ class TransformerBlock(hk.Module):
         layer_output = hk.LayerNorm(axis=-1,
                                     create_scale=True,
                                     create_offset=True,
-                                    name='output_LayerNorm',
-                                    scale_init=self.pt_wts['output/LayerNorm/gamma'],
-                                    offset_init=self.pt_wts['output/LayerNorm/beta'])(output_residual)
+                                    name='output_LayerNorm',)(output_residual)
         
         return layer_output
 
@@ -58,9 +52,7 @@ class TransformerDecoderBlock(hk.Module):
         super().__init__(name=name)
         self.config = config
         self.n = layer_num
-        self.pt = 'pretrained' in config and self.n is not None
-        self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'encoder/layer_{self.n}/')
-    
+        
     def __call__(self, y, tgt_mask, src_mask, x_embds, training=False):
 
         attention_output = MultiHeadAttention(self.config, self.n)(y, y, tgt_mask,
@@ -72,9 +64,7 @@ class TransformerDecoderBlock(hk.Module):
         self_attention_output = hk.LayerNorm(axis=-1,
                                              create_scale=True,
                                              create_offset=True,
-                                             name='attention_output_LayerNorm',
-                                             scale_init=self.pt_wts['attention/output/LayerNorm/gamma'],
-                                             offset_init=self.pt_wts['attention/output/LayerNorm/beta'],)(residual)
+                                             name='attention_output_LayerNorm',)(residual)
         
         attention_output = MultiHeadAttention(self.config)(x_embds, self_attention_output, src_mask, 
                                                            training=training, is_autoregressive=False)
@@ -92,9 +82,7 @@ class TransformerDecoderBlock(hk.Module):
         layer_output = hk.LayerNorm(axis=-1,
                                     create_scale=True,
                                     create_offset=True,
-                                    name='output_LayerNorm',
-                                    scale_init=self.pt_wts['output/LayerNorm/gamma'],
-                                    offset_init=self.pt_wts['output/LayerNorm/beta'],)(output_residual)
+                                    name='output_LayerNorm',)(output_residual)
         
         return layer_output
 
@@ -104,8 +92,6 @@ class MultiHeadAttention(hk.Module):
         super().__init__(name=name)
         self.config = config
         self.n = layer_num
-        self.pt = 'pretrained' in config and self.n is not None
-        self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'encoder/layer_{self.n}/attention/')
 
     def _split_into_heads(self, x):
         return jnp.reshape(x, [x.shape[0], x.shape[1], self.config['n_heads'], x.shape[2]//self.config['n_heads']])
@@ -118,19 +104,13 @@ class MultiHeadAttention(hk.Module):
     def __call__(self, x, y, mask, training=False, is_autoregressive=False):
         
         queries = hk.Linear(output_size=self.config['d_model'],
-                            name='query',
-                            w_init=self.pt_wts['query/kernel'],
-                            b_init=self.pt_wts['query/bias'])(y)
+                            name='query',)(y)
         
         keys = hk.Linear(output_size=self.config['d_model'],
-                         name='key',
-                         w_init=self.pt_wts['key/kernel'],
-                         b_init=self.pt_wts['key/bias'])(x)
+                         name='key',)(x)
         
         values = hk.Linear(output_size=self.config['d_model'],
-                           name='value',
-                           w_init=self.pt_wts['value/kernel'],
-                           b_init=self.pt_wts['value/bias'])(x)
+                           name='value',)(x)
         
         queries = self._split_into_heads(queries)
         keys = self._split_into_heads(keys)
@@ -151,9 +131,7 @@ class MultiHeadAttention(hk.Module):
                                        [per_head_attention_output.shape[0], per_head_attention_output.shape[1], -1])
 
         attention_output = hk.Linear(output_size=self.config['d_model'],
-                                     name='output_dense',
-                                     w_init=self.pt_wts['output/dense/kernel'],
-                                     b_init=self.pt_wts['output/dense/bias'])(attention_output)
+                                     name='output_dense',)(attention_output)
         
         if training:
             attention_output = hk.dropout(rng=hk.next_rng_key(),
@@ -173,22 +151,16 @@ class TransformerMLP(hk.Module):
         super().__init__(name=name)
         self.config = config
         self.n = layer_num
-        self.pt = 'pretrained' in config and self.n is not None
-        self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'encoder/layer_{self.n}/')
-
+        
     def __call__(self, x, training=False):
 
         intermediate_output = hk.Linear(output_size=self.config['intermediate_size'],
-                                        name='intermediate_dense',
-                                        w_init=self.pt_wts['intermediate/dense/kernel'],
-                                        b_init=self.pt_wts['intermediate/dense/bias'],)(x)
+                                        name='intermediate_dense',)(x)
 
         intermediate_output = gelu(intermediate_output)
 
         output = hk.Linear(output_size=self.config['d_model'],
-                           name='output_dense',
-                           w_init=self.pt_wts['output/dense/kernel'],
-                           b_init=self.pt_wts['output/dense/bias'],)(intermediate_output)
+                           name='output_dense',)(intermediate_output)
         
         if training:
             output = hk.dropout(rng=hk.next_rng_key(),
@@ -271,8 +243,6 @@ class ExtendedEncoder(hk.Module):
         super().__init__(name=name)
         self.config = config
         self.pt = 'pretrained' in config
-        self.pt_wts = Scope( self.config['pretrained'] if self.pt else None, f'model/masked-language-model/')
-        self.embed_layer = Embedding(self.config)
 
     def get_mask(self, token_ids):
         return (jnp.bitwise_or(token_ids==self.config['pad_id'], 
