@@ -1,8 +1,8 @@
-## For pre-training from scratch.
+## For pre-training from RoBERTa initialised weights.
 import jax
 import jax.numpy as jnp
 import haiku as hk
-from haiku.data_structures import to_immutable_dict
+from haiku.data_structures import to_immutable_dict, to_mutable_dict
 import optax
 
 import copy
@@ -14,58 +14,56 @@ from src.DataLoaders.json import load_reddit_data
 from src.Tokenizers.tree_tokenizer import Tree_Tokenizer
 from src.model.transformer import TransformerFeaturizer, ExtendedEncoder
 from src.optimizers.adam import get_adam_opt
-from src.Tokenizers.masking_utils import mask_batch_mlm
+from src.Tokenizers.masking_utils import get_masking_func
 from src.Tokenizers.utils import tree_to_batch, batch_to_tree, gather_batch_parents
+from config import config
 
-config = {
-          #Data Parameters
-          'max_length' : 128, 
-          'featurizer_batch_size' : 4,
-          'mlm_batch_size' : 4,
-          'n_epochs' : 10,
-          'data_files' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/train_period_data.jsonlist'],
-          'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
-          
-          #Model Parameters
-          'intermediate_size' : 256,
-          'n_heads' : 2,
-          'n_layers' : 2,
-          'hidden_size' : 128,
-          'd_model' : 128,                                                      #same as hidden_size
-          'max_losses' : 10,                                                    #max. number of losses to backpropagate at once
-          'max_tree_size' : 60,
-         
-          #Embeddings Parameters
-          'embed_dropout_rate' : 0.1,
-          
-          #MHA parameters
-          'attention_drop_rate' : 0.1,
-          
-          #MLP parameters
-          'fully_connected_drop_rate' : 0.1,
-          
-          #Training Parameters
-          'learning_rate' : 1e-5,
-          'max_grad_norm' : 1.0,
-          'l2' : 0.1,
+"""## Setting Up Config"""
 
-           #colab parameter
-          'restart_from' : 0,
-          }
+"""## Loading Pre-Trained Weights"""
 
+if config['initialize_pretrained']=='RoBERTa':
+    from src.model.utils import get_pretrained_weights
+    pt_wts = get_pretrained_weights()
+
+    from transformers import RobertaTokenizer
+
+    huggingface_tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+
+    config['pt_hf_tokenizer'] = huggingface_tokenizer
+
+
+"""## Data Loaders"""
 
 data_loader = load_reddit_data(config)
 
-def get_sentences():
-    for tree in data_loader.tree_generator():
-        yield tree['title'] + ' ' + tree['selftext']
-        for id, comment in tree['comments'].items():
-            yield comment['body']
+eval_config = deepcopy(config)
+eval_config['data_files'] = ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/heldout_period_data.jsonlist']
 
-lm_tokeniser = Tree_Tokenizer(config)
-lm_tokeniser.train_tokenizer(str_iter=get_sentences())
+eval_data_loader = load_reddit_data(eval_config)
+
+
+"""## Training Tokenizer, in not using pre-trained. """
+
+if config['initialize_pretrained'] == '':
+
+    def get_sentences():
+        for tree in data_loader.tree_generator():
+            yield tree['title'] + ' ' + tree['selftext']
+            for id, comment in tree['comments'].items():
+                yield comment['body']
+
+    lm_tokeniser = Tree_Tokenizer(config)
+    lm_tokeniser.train_tokenizer(str_iter=get_sentences())
+
+"""## Or Load Pre-Trained Tokenizer"""
+else: 
+    #Will automatically load pre-trained version if config['pt_hf_tokenizer'] is defined.
+    lm_tokeniser = Tree_Tokenizer(config)
 
 print("Vocabulary : ", lm_tokeniser.tokenizer.get_vocab())
+
+"""### Updating Config"""
 
 config['vocab_size'] = lm_tokeniser.tokenizer.get_vocab_size()
 
@@ -74,12 +72,15 @@ config['mask_id'] = lm_tokeniser.tokenizer.token_to_id("<mask>")
 config['pad_id'] = lm_tokeniser.tokenizer.token_to_id("<pad>")
 config['sos_id'] = lm_tokeniser.tokenizer.token_to_id("<s>")
 config['eos_id'] = lm_tokeniser.tokenizer.token_to_id("</s>")
-config['total_steps'] = len([0 for tree in data_loader.tree_generator()])
 config['dsm_list'] = [lm_tokeniser.tokenizer.token_to_id(token)
                             for token in lm_tokeniser.dms]
+config['total_steps'] = len([0 for tree in data_loader.tree_generator()])
 config = hk.data_structures.to_immutable_dict(config)
 
 print("Total steps: ", config['total_steps'])
+
+
+"""## Purifying the Model Functions and Getting Parameters"""
 
 def featurizer(token_ids, training, config):
     features = TransformerFeaturizer(config)(token_ids, training=training)
@@ -91,26 +92,26 @@ def logits_fn(comment_embds, comment_mask, masked_token_ids, training, config):
     return logits
 
 key, subkey = jax.random.split( jax.random.PRNGKey(42) )
+
+## Purifying the impure functions
 pure_logits_fn = hk.transform(logits_fn)
 pure_featurizer_fn = hk.transform(featurizer)
 
+## Getting initial parameters
 comment_encoding = lm_tokeniser.batch_encode_plus(['sample sentence']*config['featurizer_batch_size'])
 token_encoding = lm_tokeniser.batch_encode_plus(['sample sentence']*config['mlm_batch_size'])
 
 token_ids = np.asarray(lm_tokeniser.get_token_ids(token_encoding), dtype=np.int16)
 comment_ids = np.asarray(lm_tokeniser.get_token_ids(comment_encoding), dtype=np.int16)
 
-masked_token_ids, original_batch = mask_batch_mlm(subkey, config, token_ids)
+mask_batch_mlm = get_masking_func(config)
+masked_token_ids, original_batch = mask_batch_mlm(subkey, token_ids)
 
 key, subkey = jax.random.split(key)
 featurizer_params = pure_featurizer_fn.init(subkey, comment_ids, True, config)
 
 key, subkey = jax.random.split(key)
 comment_embds = pure_featurizer_fn.apply(featurizer_params, subkey, comment_ids, True, config)
-
-print(comment_embds.shape)
-print(jnp.tile(comment_embds, config['max_length']).reshape(config['mlm_batch_size'], config['max_length'], -1).shape)
-print(comment_embds.dtype, masked_token_ids.dtype)
 
 key, subkey = jax.random.split(key)
 
@@ -121,20 +122,50 @@ ExtendedEncoder_params = pure_logits_fn.init(subkey, comment_embds,
                                              comment_mask, masked_token_ids,
                                              True, config)
 
+## Merging pre-trained and initialised parameters
+if config['initialized_pretrained']=='RoBERTa':
+    from src.model.utils import get_pretrained_weights, copy_available_keys
+
+    pt_wts = get_pretrained_weights()
+
+    featurizer_params = to_mutable_dict(featurizer_params)
+
+    featurizer_params = copy_available_keys(pt_wts, featurizer_params, 
+                                        [('embeddings/word_embeddings', ('encoder/embedding/~/embed', 'embeddings')), 
+                                         ('embeddings/position_embeddings', ('encoder/embedding/position_embeddings', 'position_embeddings')),
+                                         ('embeddings/LayerNorm', ('encoder/embedding/layer_norm',))])
+    
+    ExtendedEncoder_params = to_mutable_dict(ExtendedEncoder_params)
+
+    ExtendedEncoder_params = copy_available_keys(pt_wts, ExtendedEncoder_params, 
+                                             [('embeddings/word_embeddings', ('encoder/~/embedding/~/embed', 'embeddings')), 
+                                              ('embeddings/position_embeddings', ('encoder/~/embedding/position_embeddings', 'position_embeddings')),
+                                              ('embeddings/LayerNorm', ('encoder/~/embedding/layer_norm',))])
+
 params = to_immutable_dict( {'comments_encoder' : featurizer_params, 
                              'mlm_predictor' : ExtendedEncoder_params } )
 
-@partial(jax.jit, static_argnums=(3,4))
-def pure_featurizer(params, key, token_ids, training, config):
+def pure_featurizer(training, config, params, key, token_ids):
     key, subkey = jax.random.split(key)
-    comment_embds = pure_featurizer_fn.apply(params, subkey, comment_ids, True, config)
+    comment_embds = pure_featurizer_fn.apply(params, key, comment_ids, True, config)
     return comment_embds
 
-@partial(jax.jit, static_argnums=(5,6))
-def pure_logits(params, key, comment_embds, comment_mask, masked_token_ids, training, config):
+def pure_logits(training, config, params, key, comment_embds, comment_mask, masked_token_ids):
     key, subkey = jax.random.split(key)
-    logits = pure_logits_fn.apply(params, subkey, comment_embds, comment_mask, masked_token_ids, training=training, config=config)
+    logits = pure_logits_fn.apply(params, key, comment_embds, comment_mask, masked_token_ids, training=training, config=config)
     return logits
+
+def get_featurizer(training, config):
+    return jax.jit(partial(pure_featurizer, training, config))
+
+def get_logits_fn(training, config):
+    return jax.jit(partial(pure_logits, training, config))
+
+featurizer_f = get_featurizer(True, config)
+logits_f = get_logits_fn(True, config)
+
+
+"""## Running Model and Getting Loss"""
 
 def cross_entropy(config, original_batch, logits, masked_token_ids):
     logits_mask = (masked_token_ids==config['mask_id'])
@@ -143,9 +174,13 @@ def cross_entropy(config, original_batch, logits, masked_token_ids):
     softmax_xent = -jnp.sum(labels*jax.nn.log_softmax(logits))
     total_masks = jnp.sum(logits_mask)
     if total_masks==0:
+        #print("Returning 000000000000000000000")
         return jnp.zeros(())
     softmax_xent /= total_masks
     return softmax_xent
+
+
+"""## Loss"""
 
 def loss(params, key, init_tree, config, turn=0):
     """
@@ -162,12 +197,11 @@ def loss(params, key, init_tree, config, turn=0):
     batches = tree_to_batch(tree, config['featurizer_batch_size'],
                             key='tokenized_inputs', empty_elem=empty_elem)
     
-    #print(len(batches))
     encodings = []
     for batch in batches:
         key, subkey = jax.random.split(key)
-        features = pure_featurizer(params['comments_encoder'], subkey, 
-                                            batch, True, config)
+        features = featurizer_f(params['comments_encoder'], subkey, 
+                                            batch)
         encodings.append(features)
     tree = batch_to_tree(tree, encodings, config['featurizer_batch_size'], 
                          key='comment_embds')
@@ -186,30 +220,27 @@ def loss(params, key, init_tree, config, turn=0):
         
         if i<turn*config['max_losses']:
             continue
-        
+
         if i==(turn+1)*config['max_losses']:
             remaining_comments=True
             break
-    
+     
         parent_comment_embds, mask_for_embds = gather_batch_parents(tree, comment_batch, 
                                                                     config['max_length'], key='comment_embds', 
                                                                     empty_elem=empty_elem)
         key, subkey = jax.random.split(key)
-        masked_batch, original_batch = mask_batch_mlm(subkey, config, original_batch)
+        masked_batch, original_batch = mask_batch_mlm(subkey, original_batch)
 
         key, subkey = jax.random.split(key)
-        logits = pure_logits(params['mlm_predictor'], subkey, parent_comment_embds, 
-                             mask_for_embds, masked_batch, True, config)
+        logits = logits_f(params['mlm_predictor'], subkey, parent_comment_embds, 
+                             mask_for_embds, masked_batch)
         
         loss += cross_entropy(config, original_batch, logits, masked_batch)
-        
-        
+    
     return loss, remaining_comments
 
-#Load Pre-trained weights
-import pickle
-with open('/content/drive/MyDrive/2SCL/Argumentation/params.pkl', 'rb') as f:
-    params = pickle.load(f)
+
+"""## Optimizer"""
 
 opt = get_adam_opt(config)
 opt_state = opt.init(params)
@@ -232,13 +263,16 @@ def update(opt_state, params, key, tree, config):
     return new_params, opt_state, batch_loss
 
 
-#Training Loop
+"""## Training Loop"""
+
+import pickle
+
 for _ in range(config['n_epochs']):
     
     losses = []
     for step, tree in enumerate(data_loader.tree_generator()):
         
-        if _*config['n_examples']+step <= config['restart_from']:
+        if _*config['total_steps']+step <= config['restart_from']:
           continue
         
         if step%100==0:
@@ -249,14 +283,14 @@ for _ in range(config['n_epochs']):
         key, subkey = jax.random.split(key)
         params, opt_state, batch_loss = update(opt_state, params, subkey,
                                                tree, config)
-        #print(batch_loss)
+
         losses.append(batch_loss)
 
         if step%100==0 and step!=0:
             print(sum(losses)/100)
             losses = []
 
-        if step%1000==0:
-            with open('/content/drive/MyDrive/2SCL/Argumentation/params.pkl', 'wb+') as f:
+        if step%1000==0 and step!=0:
+            with open(f'/content/drive/MyDrive/2SCL/Argumentation/params{_}.pkl', 'wb+') as f:
                 pickle.dump(params, f)
             print("Wrote params to disk")

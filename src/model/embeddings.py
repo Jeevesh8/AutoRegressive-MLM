@@ -46,7 +46,7 @@ class Embedding(hk.Module):
         
         embeddings = hk.LayerNorm(axis=-1,
                                   create_scale=True,
-                                  create_offset=True,
+                                  create_offset=True,                                  
                                   scale_init=self.pt_wts['LayerNorm/gamma'],
                                   offset_init=self.pt_wts['LayerNorm/beta'],)(embeddings)
         if training:
