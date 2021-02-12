@@ -10,7 +10,8 @@ import gin
 class TransformerBlock(hk.Module):
 
     def __init__(self, config, layer_num=None, name=None):
-        name = name+layer_num if layer_num is not None
+        if layer_num is not None:
+            name = name+layer_num
         super().__init__(name=name)
         self.config = config
         self.n = layer_num
@@ -52,7 +53,8 @@ class TransformerBlock(hk.Module):
 class TransformerDecoderBlock(hk.Module):
 
     def __init__(self, config, layer_num, name=None):
-        name = name+layer_num if layer_num is not None
+        if layer_num is not None:
+            name = name+layer_num
         super().__init__(name=name)
         self.config = config
         self.n = layer_num
