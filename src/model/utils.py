@@ -1,6 +1,6 @@
 import haiku as hk
 from haiku.data_structures import to_immutable_dict, to_mutable_dict
-import re
+import re, jax
 from typing import List, Tuple
 
 def print_keys(params, n=0):
@@ -55,8 +55,10 @@ def logits_to_ar_classifier_params(pretrained_params, classifier_params):
     pretrained_params = to_mutable_dict(pretrained_params)
     pretrained_params['ar_classifier'] = pretrained_params['mlm_predictor']
     pretrained_params.pop('mlm_predictor')
-    pretrained_params['ar_classifier']['extended_encoder/linear'] = classifier_params['ar_classifier']['auto_regressive_classifier/linear']
     pretrained_params['ar_classifier'] = change_keys(pretrained_params['ar_classifier'], 'extended_encoder', 'auto_regressive_classifier')
+    pretrained_params['ar_classifier'] = change_keys(pretrained_params['ar_classifier'], 'auto_regressive_classifier/~/', 'auto_regressive_classifier/')
+    #pretrained_params['ar_classifier']['extended_encoder/linear'] = classifier_params['ar_classifier']['auto_regressive_classifier/linear']
+    pretrained_params['ar_classifier']['auto_regressive_classifier/~/gru/~/gru'] = classifier_params['ar_classifier']['auto_regressive_classifier/~/gru/~/gru']
     return to_immutable_dict(pretrained_params)
 
 #############################################################################################
@@ -118,8 +120,22 @@ def change_wts_structure(pt_wts, dont_touch=[]):
 
     return new_wts_struct
 
+def add_extra_word_embeddings(w, config):
+    """
+    Adds word embeddings for extra tokens, than were in the model 
+    from which pre-trained weights are loaded.
+    """
+    stddev = 1. / np.sqrt(config['d_model'])
+        
+    n_extra = len(self.config['extra_tokens'])
+    
+    key, subkey = jax.random.split( jax.random.PRNGKey(22) )
+    extra_w = stddev*jax.random.truncated_normal(subkey, -2., 2., 
+                                                 shape=[n_extra, self.config['d_model']])        
+    return jax.numpy.concatenate([w, extra_w], axis=0)
+    
 @lru_cache()
-def get_pretrained_weights():
+def get_pretrained_weights(config):
     # We'll use the weight dictionary from the RoBERTa encoder at 
     # https://github.com/IndicoDataSolutions/finetune
     from transformers import RobertaModel
@@ -135,7 +151,10 @@ def get_pretrained_weights():
 
     input_embeddings = huggingface_roberta.get_input_embeddings()
     weights['embeddings/word_embeddings'] = input_embeddings.weight.detach().numpy()
-
+    
+    weights['embeddings/word_embeddings'] = add_extra_word_embeddings(weights['embeddings/word_wmbeddings'],
+                                                                      config)
+    
     weights = change_wts_structure(weights, dont_touch=['embeddings/word_embeddings', 
                                                         'embeddings/position_embeddings'])
 

@@ -1,7 +1,7 @@
 # For Pre-Training From Scratch
 config = {
           'pre_training' : True,
-          'initialize_pretrained' : 'RoBERTa',
+          'initialize_pretrained' : '',
 
           #Data Parameters
           'max_length' : 128, 
@@ -41,6 +41,9 @@ config = {
 ## For Roberta
 '''
 config = {
+          'pre_training' : True,
+          'initialize_pretrained' : 'RoBERTa',
+
           #Data Parameters
           'max_length' : 512, 
           'featurizer_batch_size' : 4,

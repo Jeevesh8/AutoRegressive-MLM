@@ -4,3 +4,5 @@ transformers
 tokenizers==0.10.0
 jsonlist
 gin-config
+beautifulsoup4
+lxml

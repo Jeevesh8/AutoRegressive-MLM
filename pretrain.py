@@ -23,9 +23,8 @@ from config import config
 """## Loading Pre-Trained Weights"""
 
 if config['initialize_pretrained']=='RoBERTa':
-    from src.model.utils import get_pretrained_weights
-    pt_wts = get_pretrained_weights()
-
+    from src.model.utils import get_pretrained_weights, copy_available_keys
+    
     from transformers import RobertaTokenizer
 
     huggingface_tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
@@ -43,7 +42,7 @@ eval_config['data_files'] = ['/content/drive/MyDrive/2SCL/Argumentation/first_ba
 eval_data_loader = load_reddit_data(eval_config)
 
 
-"""## Training Tokenizer, in not using pre-trained. """
+"""## Training Tokenizer, if not using pre-trained one. """
 
 if config['initialize_pretrained'] == '':
 
@@ -124,9 +123,8 @@ ExtendedEncoder_params = pure_logits_fn.init(subkey, comment_embds,
 
 ## Merging pre-trained and initialised parameters
 if config['initialized_pretrained']=='RoBERTa':
-    from src.model.utils import get_pretrained_weights, copy_available_keys
-
-    pt_wts = get_pretrained_weights()
+    
+    pt_wts = get_pretrained_weights(config)
 
     featurizer_params = to_mutable_dict(featurizer_params)
 

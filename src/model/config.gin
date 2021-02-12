@@ -1,3 +1,0 @@
-TransformerFeaturizer.name = 'encoder'
-TransformerBlock.name = 'layer'
-MultiHeadAttention.name = 'attention'

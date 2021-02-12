@@ -16,9 +16,6 @@ class TransformerBlock(hk.Module):
         self.config = config
         self.n = layer_num
 
-    def get_init(self, elem):
-        return  hk.initializers.Constant(elem) if self.pt else None
-
     def __call__(self, x, mask, training=False, is_autoregressive=False):
 
         attention_output = MultiHeadAttention(self.config, self.n)(x, x, mask,
@@ -242,7 +239,6 @@ class ExtendedEncoder(hk.Module):
     def __init__(self, config, name=None):
         super().__init__(name=name)
         self.config = config
-        self.pt = 'pretrained' in config
 
     def get_mask(self, token_ids):
         return (jnp.bitwise_or(token_ids==self.config['pad_id'], 
