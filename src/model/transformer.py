@@ -118,7 +118,7 @@ class MultiHeadAttention(hk.Module):
     def __call__(self, x, y, mask, training=False, is_autoregressive=False):
         
         queries = hk.Linear(output_size=self.config['d_model'],
-                            name='query'
+                            name='query',
                             w_init=self.pt_wts['query/kernel'],
                             b_init=self.pt_wts['query/bias'])(y)
         
@@ -128,7 +128,7 @@ class MultiHeadAttention(hk.Module):
                          b_init=self.pt_wts['key/bias'])(x)
         
         values = hk.Linear(output_size=self.config['d_model'],
-                           name='value'
+                           name='value',
                            w_init=self.pt_wts['value/kernel'],
                            b_init=self.pt_wts['value/bias'])(x)
         
@@ -179,14 +179,14 @@ class TransformerMLP(hk.Module):
     def __call__(self, x, training=False):
 
         intermediate_output = hk.Linear(output_size=self.config['intermediate_size'],
-                                        name='intermediate_dense'
+                                        name='intermediate_dense',
                                         w_init=self.pt_wts['intermediate/dense/kernel'],
                                         b_init=self.pt_wts['intermediate/dense/bias'],)(x)
 
         intermediate_output = gelu(intermediate_output)
 
         output = hk.Linear(output_size=self.config['d_model'],
-                           name='output_dense'
+                           name='output_dense',
                            w_init=self.pt_wts['output/dense/kernel'],
                            b_init=self.pt_wts['output/dense/bias'],)(intermediate_output)
         
