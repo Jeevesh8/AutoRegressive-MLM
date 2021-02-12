@@ -11,8 +11,9 @@ class Tree_Tokenizer:
     def __init__(self, config):
         self.tokenizer = Tokenizer(BPE())
         self.tokenizer.pre_tokenizer = Whitespace()
-        self.dms = self.get_discourse_markers(config['discourse_markers_file'])
+        self.dms = self.get_discourse_markers(config)
         self.config = config
+        
         if 'pt_hf_tokenizer' in self.config:
             self.load_from_pretrained()
         else:
@@ -138,8 +139,11 @@ class Tree_Tokenizer:
         
         return tree
     
-    def get_discourse_markers(self, filename):
-        with open(filename) as f:
-            dms = f.readlines()[2:]
-            dms = [elem.split(' ', 1)[1].rstrip('\n') for elem in dms]
-        return dms
+    def get_discourse_markers(self, config):
+        if 'discourse_markers_file' in config:
+            filename = config['discourse_markers_file']
+            with open(filename) as f:
+                dms = f.readlines()[2:]
+                dms = [elem.split(' ', 1)[1].rstrip('\n') for elem in dms]
+            return dms
+        return []
