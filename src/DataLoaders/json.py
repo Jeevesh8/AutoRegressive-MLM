@@ -5,8 +5,9 @@ class load_reddit_data:
     
     def __init__(self, config):
         self.config = config
-        self.mask_dms = True
-        self.dms = self.get_discourse_markers(config['discourse_markers_file'])
+        self.mask_dms = 'discourse_markers_file' in config
+        if self.mask_dms:
+            self.dms = self.get_discourse_markers(config['discourse_markers_file'])
 
     def file_loader(self):
         for f in self.config['data_files']:
