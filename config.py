@@ -1,3 +1,4 @@
+# For Pre-Training From Scratch
 config = {
           'pre_training' : True,
           'initialize_pretrained' : 'RoBERTa',
@@ -38,7 +39,8 @@ config = {
           }
 
 ## For Roberta
-RoBERTa_config = {
+'''
+config = {
           #Data Parameters
           'max_length' : 512, 
           'featurizer_batch_size' : 4,
@@ -73,3 +75,4 @@ RoBERTa_config = {
           #colab parameter
           'restart_from' : 0,
           }
+'''
