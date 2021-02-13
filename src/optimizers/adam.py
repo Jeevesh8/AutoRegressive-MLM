@@ -26,10 +26,16 @@ def get_adam_opt(config):
 
     lr_schedule = make_lr_schedule(warmup_percentage=0.1, total_steps=total_steps, restart_from=config['restart_from'])
 
-    opt = optax.chain(
-            optax.clip_by_global_norm(config['max_grad_norm']),
-            optax.adam(learning_rate=config['learning_rate']),
-            optax.scale_by_schedule(lr_schedule),
-        )
+    if config['pre_training']:
+        opt = optax.chain(
+                optax.clip_by_global_norm(config['max_grad_norm']),
+                optax.adam(learning_rate=config['learning_rate']),
+                optax.scale_by_schedule(lr_schedule),
+            )
+    else:
+        opt = optax.chain(
+                optax.clip_by_global_norm(config['max_grad_norm']),
+                optax.adam(learning_rate=config['learning_rate']),
+            )    
     
     return opt

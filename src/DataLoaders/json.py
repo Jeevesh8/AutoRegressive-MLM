@@ -153,3 +153,12 @@ class load_reddit_data:
             dms = f.readlines()[2:]
             dms = [elem.split(' ', 1)[1].rstrip('\n') for elem in dms]
         return dms
+
+    def get_sentences(self):
+        """
+        Yields all sentences in all posts/comments one-by-one.
+        """
+        for tree in self.tree_generator():
+            yield tree['title'] + ' ' + tree['selftext']
+            for id, comment in tree['comments'].items():
+                yield comment['body']

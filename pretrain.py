@@ -18,9 +18,7 @@ from src.Tokenizers.masking_utils import get_masking_func
 from src.Tokenizers.utils import tree_to_batch, batch_to_tree, gather_batch_parents
 from config import config
 
-"""## Setting Up Config"""
-
-"""## Loading Pre-Trained Weights"""
+"""## Loading Pre-Trained Tokenizers"""
 
 if config['initialize_pretrained']=='RoBERTa':
     from src.model.utils import get_pretrained_weights, copy_available_keys
@@ -46,14 +44,8 @@ eval_data_loader = load_reddit_data(eval_config)
 
 if config['initialize_pretrained'] == '':
 
-    def get_sentences():
-        for tree in data_loader.tree_generator():
-            yield tree['title'] + ' ' + tree['selftext']
-            for id, comment in tree['comments'].items():
-                yield comment['body']
-
     lm_tokeniser = Tree_Tokenizer(config)
-    lm_tokeniser.train_tokenizer(str_iter=get_sentences())
+    lm_tokeniser.train_tokenizer(str_iter=data_loader.get_sentences())
 
 """## Or Load Pre-Trained Tokenizer"""
 else: 
@@ -145,12 +137,12 @@ params = to_immutable_dict( {'comments_encoder' : featurizer_params,
 
 def pure_featurizer(training, config, params, key, token_ids):
     key, subkey = jax.random.split(key)
-    comment_embds = pure_featurizer_fn.apply(params, key, comment_ids, True, config)
+    comment_embds = pure_featurizer_fn.apply(params, subkey, comment_ids, True, config)
     return comment_embds
 
 def pure_logits(training, config, params, key, comment_embds, comment_mask, masked_token_ids):
     key, subkey = jax.random.split(key)
-    logits = pure_logits_fn.apply(params, key, comment_embds, comment_mask, masked_token_ids, training=training, config=config)
+    logits = pure_logits_fn.apply(params, subkey, comment_embds, comment_mask, masked_token_ids, training=training, config=config)
     return logits
 
 def get_featurizer(training, config):
@@ -172,7 +164,6 @@ def cross_entropy(config, original_batch, logits, masked_token_ids):
     softmax_xent = -jnp.sum(labels*jax.nn.log_softmax(logits))
     total_masks = jnp.sum(logits_mask)
     if total_masks==0:
-        #print("Returning 000000000000000000000")
         return jnp.zeros(())
     softmax_xent /= total_masks
     return softmax_xent
