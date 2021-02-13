@@ -234,11 +234,12 @@ class VaswaniTransformer(hk.Module):
         return logits
 
 @gin.configurable
-class ExtendedEncoder(hk.Module):
+class BaseExtendedEncoder(hk.Module):
 
     def __init__(self, config, name=None):
         super().__init__(name=name)
         self.config = config
+        self.embed_layer = Embedding(self.config)
 
     def get_mask(self, token_ids):
         return (jnp.bitwise_or(token_ids==self.config['pad_id'], 
@@ -255,7 +256,55 @@ class ExtendedEncoder(hk.Module):
                                                                   comments_mask, comment_embds,
                                                                   training=training)
         
+        return y
+
+@gin.configurable
+class ExtendedEncoder(BaseExtendedEncoder):
+    def __init__(self, config, name=None):
+        super().__init__(config, name=name)
+    
+    def __call__(self, comment_embds, comments_mask, masked_token_ids, training=False):
+        y = super()(comment_embds, comments_mask, masked_token_ids, training=training)
         w = self.embed_layer.word_emb_layer.embeddings
         logits = jnp.tensordot(y, w, (-1,-1))
-        
         return logits
+
+class GRU(hk.Module):
+    def __init__(self, hidden_size):
+        super().__init__()
+        self.gru = hk.GRU(hidden_size)
+        self.init_state = jnp.zeros(hidden_size)
+
+    def __call__(self, x):
+        state = jnp.stack([self.init_state]*x.shape[0])
+        outputs = []
+        for i in range(x.shape[1]):
+            output, state = self.gru(x[:,i,:], state)
+            outputs.append(output)
+        return jnp.stack(outputs, axis=1)
+
+@gin.configurable
+class FineTuningExtendedEncoder(BaseExtendedEncoder):
+    """
+    For finetuning, base extended encoder with additional 
+    classification modules like hk.Linear or GRU.
+    """
+    def __init__(self, config, name=None):
+        super().__init__(config, name=name)
+        
+        if config['last_layer']=='GRU':
+            self.last_layer = GRU(config['n_classes'])
+        elif config['last_layer']=='Linear':
+            self.last_layer = hk.Linear(output_size=config['n_classes'])
+        else:
+            raise ValueError("No implementation for finetuning with last layer as : ", config['last_layer'])
+    
+    def __call__(self, comment_embds, comments_mask, masked_token_ids, training=False):
+        y = super()(comment_embds, comments_mask, masked_token_ids, training=training)
+        
+        if training:
+            new_embds = hk.dropout(rng=hk.next_rng_key(),
+                                   rate=self.config['classifier_drop_rate'],
+                                   x=y)
+        
+        return self.last_layer(new_embds)

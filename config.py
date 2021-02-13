@@ -19,7 +19,8 @@ config = {
           'd_model' : 128,                                                      #same as hidden_size
           'max_losses' : 10,                                                    #max. number of losses to backpropagate at once
           'max_tree_size' : 60,
-         
+          'last_layer' : '',                                                    #Specify(Linear/GRU) when pre_training=False.
+
           #Embeddings Parameters
           'embed_dropout_rate' : 0.1,
           
@@ -38,7 +39,7 @@ config = {
           'restart_from' : 0,
           }
 
-## For Roberta
+## For pre-training from RoBERTa weights
 '''
 config = {
           'pre_training' : True,
@@ -60,6 +61,7 @@ config = {
           'd_model' : 768,                                                      #same as hidden_size
           'max_losses' : 2,                                                     #max. number of losses to backpropagate at once
           'max_tree_size' : 20,
+          'last_layer' : '',                                                    #Specify(Linear/GRU) when pre_training=False.
           
           #Embeddings Parameters
           'embed_dropout_rate' : 0.1,
