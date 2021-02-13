@@ -117,15 +117,15 @@ if config['initialized_pretrained']=='RoBERTa':
     featurizer_params = to_mutable_dict(featurizer_params)
 
     featurizer_params = copy_available_keys(pt_wts, featurizer_params, 
-                                        [('embeddings/word_embeddings', ('encoder/embedding/~/embed', 'embeddings')), 
-                                         ('embeddings/position_embeddings', ('encoder/embedding/position_embeddings', 'position_embeddings')),
+                                        [('embeddings/word_embeddings/weight', ('encoder/embedding/~/embed', 'embeddings')), 
+                                         ('embeddings/position_embeddings/weight', ('encoder/embedding/position_embeddings', 'position_embeddings')),
                                          ('embeddings/LayerNorm', ('encoder/embedding/layer_norm',))])
     
     ExtendedEncoder_params = to_mutable_dict(ExtendedEncoder_params)
 
     ExtendedEncoder_params = copy_available_keys(pt_wts, ExtendedEncoder_params, 
-                                             [('embeddings/word_embeddings', ('encoder/~/embedding/~/embed', 'embeddings')), 
-                                              ('embeddings/position_embeddings', ('encoder/~/embedding/position_embeddings', 'position_embeddings')),
+                                             [('embeddings/word_embeddings/weight', ('encoder/~/embedding/~/embed', 'embeddings')), 
+                                              ('embeddings/position_embeddings/weight', ('encoder/~/embedding/position_embeddings', 'position_embeddings')),
                                               ('embeddings/LayerNorm', ('encoder/~/embedding/layer_norm',))])
 
 params = to_immutable_dict( {'comments_encoder' : featurizer_params, 

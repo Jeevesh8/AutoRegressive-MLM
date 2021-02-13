@@ -74,14 +74,16 @@ def postprocess_key(key):
     """
     Changing keys of RoBERTa huggingface model to match our model.
     """
-    key = key.replace('model/featurizer/bert/', '')
-    key = key.replace(':0', '')
-    key = key.replace('self/', '')
-    key = key.replace('attention/output/LayerNorm', 'attention_output_LayerNorm')
-    key = key.replace('output/LayerNorm', 'output_LayerNorm')
-    key = key.replace('output/dense', 'output_dense')
-    key = key.replace('intermediate/dense', 'transformer_mlp/intermediate_dense')
-    key = re.sub(r'layer_(\d+)/output_dense', r'layer_\1/transformer_mlp/output_dense', key)
+    key = key.replace('self.', '')
+    key = re.sub(r'layer\.(\d+)\.', r'layer_\1.', key)
+    key = key.replace('output.dense', 'output_dense')
+    key = key.replace('attention.output.LayerNorm', 'attention_output_LayerNorm')
+    key = key.replace('output.LayerNorm', 'output_LayerNorm')
+    key = key.replace('intermediate.dense', 'transformer_mlp.intermediate_dense')
+    key = re.sub(r'layer_(\d+)\.output_dense', r'layer_\1.transformer_mlp.output_dense', key)
+    key = key.replace('.', '/')
+    key = key.replace('LayerNorm/weight', 'LayerNorm/scale')
+    key = key.replace('LayerNorm/bias', 'LayerNorm/offset')
     return key
 
 def change_wts_structure(pt_wts, dont_touch=[]):
@@ -102,16 +104,11 @@ def change_wts_structure(pt_wts, dont_touch=[]):
         nested_modules = k.split('/')
         second_last_module = '/'.join(nested_modules[:-1]) 
         last_module = nested_modules[-1]
-#        print(second_last_module, last_module)
 
-        if last_module=='kernel':
+        if last_module=='weight':
             last_module = 'w'
         elif last_module =='bias':
              last_module = 'b'
-        elif last_module=='gamma' or last_module=='g':
-            last_module = 'scale'
-        elif last_module=='beta' or last_module=='b':
-            last_module = 'offset'
 
         if second_last_module not in new_wts_struct:
             new_wts_struct[second_last_module] = {} 
@@ -141,22 +138,20 @@ def get_pretrained_weights(config):
     from transformers import RobertaModel
     huggingface_roberta = RobertaModel.from_pretrained('roberta-base', output_hidden_states=True)
 
-    remote_url = "https://bendropbox.s3.amazonaws.com/roberta/roberta-model-sm-v2.jl"
-    weights = joblib.load(BytesIO(requests.get(remote_url).content))
+    weights = huggingface_roberta.state_dict()
 
     weights = {
-        postprocess_key(key): value
+        postprocess_key(key): value.numpy()
         for key, value in weights.items()
     }
 
     input_embeddings = huggingface_roberta.get_input_embeddings()
-    weights['embeddings/word_embeddings'] = input_embeddings.weight.detach().numpy()
     
-    weights['embeddings/word_embeddings'] = add_extra_word_embeddings(weights['embeddings/word_wmbeddings'],
+    weights['embeddings/word_embeddings/weight'] = add_extra_word_embeddings(weights['embeddings/word_wmbeddings/weight'],
                                                                       config)
     
-    weights = change_wts_structure(weights, dont_touch=['embeddings/word_embeddings', 
-                                                        'embeddings/position_embeddings'])
+    weights = change_wts_structure(weights, dont_touch=['embeddings/word_embeddings/weight', 
+                                                        'embeddings/position_embeddings/weight'])
 
     return weights
 ############################################################################################
