@@ -30,9 +30,7 @@ class Embedding(hk.Module):
         
         embeddings = hk.LayerNorm(axis=-1,
                                   create_scale=True,
-                                  create_offset=True,                                  
-                                  scale_init=self.pt_wts['LayerNorm/gamma'],
-                                  offset_init=self.pt_wts['LayerNorm/beta'],)(embeddings)
+                                  create_offset=True,)(embeddings)
         if training:
             embeddings = hk.dropout(hk.next_rng_key(),
                                     rate=self.config['embed_dropout_rate'],

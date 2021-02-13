@@ -3,7 +3,7 @@ from src.Tokenizers.base_tokenizer import Base_Tokenizer
 class Tree_Tokenizer(Base_Tokenizer):
     
     def __init__(self, config):
-        super().__init__(self, config)
+        super().__init__(config)
     
     def tokenize_tree(self, tree):
         
