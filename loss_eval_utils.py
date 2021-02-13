@@ -1,4 +1,8 @@
 from sklearn.metrics import classification_report
+import jax.numpy as jnp
+import jax
+import haiku as hk
+from copy import deepcopy
 
 def ft_cross_entropy(config, original_batch, logits, masked_token_ids):
     logits_mask = (masked_token_ids!=config['pad_id'])
