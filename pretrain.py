@@ -20,12 +20,12 @@ from config import config
 
 """## Loading Pre-Trained Tokenizers"""
 
-if config['initialize_pretrained']=='RoBERTa':
+if config['initialize_pretrained']!='':
     from src.model.utils import get_pretrained_weights, copy_available_keys
     
     from transformers import RobertaTokenizer
 
-    huggingface_tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+    huggingface_tokenizer = RobertaTokenizer.from_pretrained(config['initialize_pretrained'])
 
     config['pt_hf_tokenizer'] = huggingface_tokenizer
 
@@ -110,7 +110,7 @@ ExtendedEncoder_params = pure_logits_fn.init(subkey, comment_embds,
                                              True, config)
 
 ## Merging pre-trained and initialised parameters
-if config['initialized_pretrained']=='RoBERTa':
+if config['initialized_pretrained']!='':
     
     pt_wts = get_pretrained_weights(config)
 

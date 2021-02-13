@@ -62,7 +62,7 @@ def logits_to_ar_classifier_params(pretrained_params, classifier_params):
     return to_immutable_dict(pretrained_params)
 
 #############################################################################################
-#                           RoBERTa Specific Weight Loading Code                            #
+#                        HuggingFace Specific Weight Loading Code                           #
 #############################################################################################
 from io import BytesIO
 from functools import lru_cache
@@ -133,19 +133,16 @@ def add_extra_word_embeddings(w, config):
     
 @lru_cache()
 def get_pretrained_weights(config):
-    # We'll use the weight dictionary from the RoBERTa encoder at 
-    # https://github.com/IndicoDataSolutions/finetune
+    # We'll use the weight dictionary from the RoBERTa encoder at HuggingFace
     from transformers import RobertaModel
-    huggingface_roberta = RobertaModel.from_pretrained('roberta-base', output_hidden_states=True)
+    huggingface_model = RobertaModel.from_pretrained(config['initialize_pretrained'], output_hidden_states=True)
 
-    weights = huggingface_roberta.state_dict()
+    weights = huggingface_model.state_dict()
 
     weights = {
         postprocess_key(key): value.numpy()
         for key, value in weights.items()
     }
-
-    input_embeddings = huggingface_roberta.get_input_embeddings()
     
     weights['embeddings/word_embeddings/weight'] = add_extra_word_embeddings(weights['embeddings/word_wmbeddings/weight'],
                                                                       config)

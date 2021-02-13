@@ -45,7 +45,7 @@ config = {
 '''
 config = {
           'pre_training' : True,
-          'initialize_pretrained' : 'RoBERTa',
+          'initialize_pretrained' : 'distilroberta-base',
 
           #Data Parameters
           'max_length' : 512, 

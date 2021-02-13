@@ -252,7 +252,7 @@ class BaseExtendedEncoder(hk.Module):
         tgt_mask = self.get_mask(masked_token_ids)
 
         for layer_num in range(self.config['n_layers']):
-            y = TransformerDecoderBlock(self.config, layer_num+6)(y, tgt_mask, 
+            y = TransformerDecoderBlock(self.config, layer_num)(y, tgt_mask, 
                                                                   comments_mask, comment_embds,
                                                                   training=training)
         
