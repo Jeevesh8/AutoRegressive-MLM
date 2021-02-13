@@ -12,7 +12,8 @@ config = {
           #Folders containing train_period_data.jsonlist and heldout_period_data.jsonlist
           'data_folders' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/'],
           'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
-          
+          'params_dir' : '/content/drive/MyDrive/2SCL/Argumentation/',          #Directory to read from/write to params
+           
           #Model Parameters
           'intermediate_size' : 256,
           'n_heads' : 2,
@@ -55,8 +56,8 @@ config = {
           
           #Folders containing train_period_data.jsonlist and heldout_period_data.jsonlist
           'data_folders' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/'],
-          
           'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
+          'params_dir' : '/content/drive/MyDrive/2SCL/Argumentation/',          #Directory to read from/write to params 
 
           #Model Parameters
           'intermediate_size' : 3072,
@@ -104,6 +105,7 @@ config = {
                                 '/content/drive/MyDrive/2SCL/Argumentation/finetune-data/change-my-view-modes/v2.0/positive/'],
 
           'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
+          'params_dir' : '/content/drive/MyDrive/2SCL/Argumentation/',          #Directory to read from/write to params 
 
           #Model Parameters
           'intermediate_size' : 3072,

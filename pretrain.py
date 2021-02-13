@@ -17,6 +17,7 @@ from src.optimizers.adam import get_adam_opt
 from src.Tokenizers.masking_utils import get_masking_func
 from src.Tokenizers.utils import tree_to_batch, batch_to_tree, gather_batch_parents
 from config import config
+import wandb
 
 """## Loading Pre-Trained Tokenizers"""
 
@@ -62,6 +63,8 @@ config['eos_id'] = lm_tokeniser.tokenizer.token_to_id("</s>")
 config['dsm_list'] = [lm_tokeniser.tokenizer.token_to_id(token)
                             for token in lm_tokeniser.dms]
 config['total_steps'] = len([0 for tree in data_loader.tree_generator()])
+
+wandb.init(project='autoregressive-mlm', config=config)
 config = hk.data_structures.to_immutable_dict(config)
 
 print("Total steps: ", config['total_steps'])
@@ -273,9 +276,11 @@ for _ in range(config['n_epochs']):
 
         if step%100==0 and step!=0:
             print(sum(losses)/100)
+            wandb.log({'loss_on_100_batches':sum(losses)/100})
             losses = []
 
         if step%1000==0 and step!=0:
-            with open(f'/content/drive/MyDrive/2SCL/Argumentation/params{_}.pkl', 'wb+') as f:
+            with open(config['params_dir']+f'params{_}.pkl', 'wb+') as f:
                 pickle.dump(params, f)
+            wandb.save(config['params_dir']+f'params{_}.pkl')
             print("Wrote params to disk")

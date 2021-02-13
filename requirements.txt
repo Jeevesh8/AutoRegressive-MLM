@@ -6,3 +6,4 @@ jsonlist
 gin-config
 beautifulsoup4
 lxml
+wandb

@@ -19,6 +19,7 @@ from src.model.utils import logits_to_ar_classifier_params, print_keys
 from src.optimizers.adam import get_adam_opt
 from config import config
 from loss_eval_utils import ft_loss
+import wandb
 
 """## Loading Pre-Trained Tokenizers"""
 
@@ -68,6 +69,7 @@ config['dsm_list'] = [lm_tokeniser.tokenizer.token_to_id(token)
                             for token in lm_tokeniser.dms]
 config['total_steps'] = len([0 for tree in train_data_loader.tree_generator()])
 
+wandb.init(project='autoregressive-mlm-ft', config=config)
 config = hk.data_structures.to_immutable_dict(config)
 
 print("Total steps: ", config['total_steps'])
@@ -241,12 +243,12 @@ def train(config, params, train_data_loader, key, opt_state):
 
             if step==config['total_steps']-1:
                 all_preds, all_labels = evaluate(config, params, valid_data_loader, key)
-                print(classification_report(all_labels, all_preds, labels=[0,1,2], 
-                                            target_names=['Non-Argumentative', 'Claim', 'Premise']))
+                wandb.log({'Validation' : classification_report(all_labels, all_preds, labels=[0,1,2], 
+                                            target_names=['Non-Argumentative', 'Claim', 'Premise'])})
     
                 evaluate(config, params, test_data_loader, key)
-                print(classification_report(all_labels, all_preds, labels=[0,1,2], 
-                                            target_names=['Non-Argumentative', 'Claim', 'Premise']))
+                wandb.log({'Test' : classification_report(all_labels, all_preds, labels=[0,1,2], 
+                                            target_names=['Non-Argumentative', 'Claim', 'Premise'])})
     
     return val_losses
 
@@ -273,4 +275,5 @@ for lr in lrs:
         
         valid_epoch_losses.append( val_losses )
         
+        wandb.log({'learning_rate':lr, 'dropout_rate': dr})
         print(f"Learning rate={lr}, Dropout Rate={dr} Losses : ", valid_epoch_losses[-1])

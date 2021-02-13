@@ -188,7 +188,7 @@ class TransformerFeaturizer(hk.Module):
                                                         training=training, 
                                                         is_autoregressive=is_autoregressive)
         
-        x = jnp.average(x, axis=1)
+        x = jax.lax.stop_gradient(x[:,0,:])
         return x
 
 @gin.configurable
