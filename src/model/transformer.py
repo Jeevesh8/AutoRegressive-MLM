@@ -264,7 +264,7 @@ class ExtendedEncoder(BaseExtendedEncoder):
         super().__init__(config, name=name)
     
     def __call__(self, comment_embds, comments_mask, masked_token_ids, training=False):
-        y = super()(comment_embds, comments_mask, masked_token_ids, training=training)
+        y = super().__call__(comment_embds, comments_mask, masked_token_ids, training=training)
         w = self.embed_layer.word_emb_layer.embeddings
         logits = jnp.tensordot(y, w, (-1,-1))
         return logits
@@ -300,7 +300,7 @@ class FineTuningExtendedEncoder(BaseExtendedEncoder):
             raise ValueError("No implementation for finetuning with last layer as : ", config['last_layer'])
     
     def __call__(self, comment_embds, comments_mask, masked_token_ids, training=False):
-        y = super()(comment_embds, comments_mask, masked_token_ids, training=training)
+        y = super().__call__(comment_embds, comments_mask, masked_token_ids, training=training)
         
         if training:
             new_embds = hk.dropout(rng=hk.next_rng_key(),
