@@ -1,16 +1,18 @@
 import jsonlist
-import re
+import re, os
 
 class load_reddit_data:
     
-    def __init__(self, config):
+    def __init__(self, config, mode='train'):
         self.config = config
         self.mask_dms = 'discourse_markers_file' in config
+        self.data_file = 'train_period_data.jsonlist' if mode=='train' else 'heldout_period_data.jsonlist'
         if self.mask_dms:
             self.dms = self.get_discourse_markers(config['discourse_markers_file'])
 
     def file_loader(self):
-        for f in self.config['data_files']:
+        for folder in self.config['data_folders']:
+            f = os.path.join(folder,self.data_file)
             yield jsonlist.load_file(f)
     
     def mask_disc_markers(self, text):

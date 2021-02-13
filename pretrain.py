@@ -34,11 +34,7 @@ if config['initialize_pretrained']=='RoBERTa':
 
 data_loader = load_reddit_data(config)
 
-eval_config = deepcopy(config)
-eval_config['data_files'] = ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/heldout_period_data.jsonlist']
-
-eval_data_loader = load_reddit_data(eval_config)
-
+eval_data_loader = load_reddit_data(eval_config, mode='eval')
 
 """## Training Tokenizer, if not using pre-trained one. """
 

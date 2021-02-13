@@ -8,7 +8,9 @@ config = {
           'featurizer_batch_size' : 4,
           'mlm_batch_size' : 4,
           'n_epochs' : 10,
-          'data_files' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/train_period_data.jsonlist'],
+          
+          #Folders containing train_period_data.jsonlist and heldout_period_data.jsonlist
+          'data_folders' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/'],
           'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
           
           #Model Parameters
@@ -50,7 +52,10 @@ config = {
           'featurizer_batch_size' : 4,
           'mlm_batch_size' : 4,
           'n_epochs' : 10,
-          'data_files' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/train_period_data.jsonlist'],
+          
+          #Folders containing train_period_data.jsonlist and heldout_period_data.jsonlist
+          'data_folders' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/'],
+          
           'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
 
           #Model Parameters
@@ -93,7 +98,11 @@ config = {
           'featurizer_batch_size' : 4,
           'mlm_batch_size' : 4,
           'n_epochs' : 10,
-          'data_files' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/train_period_data.jsonlist'],
+          
+          ## Folders containing fine-tuning data. Each of these must have train/, test/, valid/, subfolders.
+          'ft_data_folders' : [ '/content/drive/MyDrive/2SCL/Argumentation/finetune-data/change-my-view-modes/v2.0/negative/', 
+                                '/content/drive/MyDrive/2SCL/Argumentation/finetune-data/change-my-view-modes/v2.0/positive/'],
+
           'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
 
           #Model Parameters
@@ -104,7 +113,8 @@ config = {
           'd_model' : 768,                                                      #same as hidden_size
           'max_losses' : 2,                                                     #max. number of losses to backpropagate at once
           'max_tree_size' : 20,
-          'last_layer' : '',                                                    #Specify(Linear/GRU) when pre_training=False.
+          'n_classes' : 3,                                                      #Number of classes for argument classification.
+          'last_layer' : 'GRU',                                                 #Specify(Linear/GRU) when pre_training=False.
 
           #Embeddings Parameters
           'embed_dropout_rate' : 0.1,
