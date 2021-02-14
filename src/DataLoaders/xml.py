@@ -12,8 +12,9 @@ class load_xml_data:
         text = text.split('____')[0]                                                    #To remove footnotes
         text = text.strip(' _\t\n')
         text = re.sub(r'\(https?://\S+\)', '<url>', text)                               #To remove URLs
-        text = re.sub(r'\n', '', text)
         text = re.sub(r'&gt;.*(?!(\n+))$', '', text)                                    #To remove quotes at last.
+        text = re.sub(r'&gt;(.*)\n', '<startq> \g<1> <endq>', text)                     #To add start quote, end quote tags
+        text = re.sub(r'\n', '', text)
         text = text.rstrip(' _\n\t')
         text = re.sub(r'\n', '', text)
         text = text.lower()
