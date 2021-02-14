@@ -75,7 +75,8 @@ class load_xml_data:
                 if elem['author'] not in authors:
                     authors[elem['author']]=i
                     i+=1
-                thread[-1][0][0] = f'<user_{autors[elem['author']]}> '+thread[-1][0][0]
+                author_idx = authors[elem['author']]
+                thread[-1][0][0] = f'<user_{author_idx}> '+thread[-1][0][0]
                 
                 if len(thread)==self.config['max_tree_size']:
                     break

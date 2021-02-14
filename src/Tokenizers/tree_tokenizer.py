@@ -27,7 +27,8 @@ class Tree_Tokenizer(Base_Tokenizer):
                 author[comment['author']] = i
             
             if author[comment['author']]<self.config['max_labelled_users_per_tree']:
-                lis.append( f'<user_{author[comment['author']]}>' + comment['body'] )
+                author_idx = author[comment['author']]
+                lis.append( f'<user_{author_idx}>' + comment['body'] )
             
             else:
                 lis.append(comment['body'])

@@ -44,7 +44,6 @@ if config['initialize_pretrained'] == '':
     lm_tokeniser = Tree_Tokenizer(config)
     lm_tokeniser.train_tokenizer(str_iter=data_loader.get_sentences())
 
-"""## Or Load Pre-Trained Tokenizer"""
 else: 
     #Will automatically load pre-trained version if config['pt_hf_tokenizer'] is defined.
     lm_tokeniser = Tree_Tokenizer(config)
