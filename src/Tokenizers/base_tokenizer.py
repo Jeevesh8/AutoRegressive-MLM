@@ -18,7 +18,7 @@ class Base_Tokenizer:
         else:
             self.trainer = BpeTrainer(special_tokens=['<s>', '</s>', '<unk>', '<pad>', '<mask>', '<url>', '<startq>', '<endq>']
                                                       +[f'<author_{i}>' for i in range(self.config['max_labelled_users_per_tree'])]
-                                                      +self.dms)
+                                                      +['<unu>']+self.dms)
 
     def load_from_pretrained(self):
         json_tok = self.save_and_modify()
