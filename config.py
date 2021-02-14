@@ -4,7 +4,8 @@ config = {
           'initialize_pretrained' : '',
 
           #Data Parameters
-          'max_length' : 128, 
+          'max_length' : 128,
+          'featurizer_max_length': 128,                                         #Max. length of previous posts/comments(which are sent into featurizer)
           'featurizer_batch_size' : 4,
           'mlm_batch_size' : 4,
           'n_epochs' : 10,
@@ -51,6 +52,7 @@ config = {
 
           #Data Parameters
           'max_length' : 512, 
+          'featurizer_max_length': 128,                                         #Max. length of previous posts/comments(which are sent into featurizer)
           'featurizer_batch_size' : 4,
           'mlm_batch_size' : 4,
           'n_epochs' : 10,
@@ -94,10 +96,12 @@ config = {
 '''
 config = {
           'pre_training' : False,
-          'initialize_pretrained' : <path-to-pretrained-wts-file>,
+          'initialize_pretrained' : '',
+          'params_file' : <path-to-pretrained-wts-file>,                        #Path to parameters obtained from pre-training.
 
           #Data Parameters
           'max_length' : 512, 
+          'featurizer_max_length': 128,                                         #Max. length of previous posts/comments(which are sent into featurizer)
           'featurizer_batch_size' : 4,
           'mlm_batch_size' : 4,
           'n_epochs' : 10,

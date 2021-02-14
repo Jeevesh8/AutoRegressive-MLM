@@ -71,14 +71,19 @@ class load_xml_data:
             
             for elem in parsed_xml.find_all('reply')+[parsed_xml.find('OP')]:
                 thread.append( self.divide_pc(elem.contents) )
+                if len(thread)==self.config['max_tree_size']:
+                    break
                 
+                if 'author' not in elem:
+                    thread[-1][0][0] = '<unu> '+thread[-1][0][0]
+                    continue
+
                 if elem['author'] not in authors:
                     authors[elem['author']]=i
                     i+=1
+                
                 author_idx = authors[elem['author']]
+                
                 thread[-1][0][0] = f'<user_{author_idx}> '+thread[-1][0][0]
                 
-                if len(thread)==self.config['max_tree_size']:
-                    break
-            
             yield thread

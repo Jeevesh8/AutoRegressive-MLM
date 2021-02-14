@@ -23,12 +23,12 @@ import wandb
 
 """## Loading Pre-Trained Tokenizers"""
 
-if config['initialize_pretrained']=='RoBERTa':
+if config['initialize_pretrained']!='':
     from src.model.utils import get_pretrained_weights, copy_available_keys
     
     from transformers import RobertaTokenizer
 
-    huggingface_tokenizer = RobertaTokenizer.from_pretrained('roberta-base')
+    huggingface_tokenizer = RobertaTokenizer.from_pretrained(config['initialize_pretrained'])
 
     config['pt_hf_tokenizer'] = huggingface_tokenizer
 
@@ -120,9 +120,9 @@ ExtendedEncoder_params = pure_logits_fn.init(subkey, comment_embds,
 
 """ ## Merging pre-trained and initialised parameters"""
 
-if config['initialized_pretrained']!='':
+if config['param_file']!='':
     
-    with open(config['initialized_pretrained'], 'rb') as f:
+    with open(config['param_file'], 'rb') as f:
         pt_wts = pickle.load(f)
 
     featurizer_params = to_mutable_dict(featurizer_params)

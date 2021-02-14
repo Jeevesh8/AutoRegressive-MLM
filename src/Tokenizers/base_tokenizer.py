@@ -64,7 +64,7 @@ class Base_Tokenizer:
     
     def add_tokens(self, vocab):
         self.extra_tokens = ['<url>', '<startq>', '<endq>']+self.get_missing_dms(vocab)       #Tokens to add to vocab of pre-trained HuggingFace model
-        self.extra_tokens += [f'<author_{i}>' for i in range(self.config['max_labelled_users_per_tree'])]
+        self.extra_tokens += [f'<author_{i}>' for i in range(self.config['max_labelled_users_per_tree'])]+['<unu>']
         for word in self.extra_tokens:
             vocab[word] = len(vocab)
         self.config['extra_tokens'] = self.extra_tokens

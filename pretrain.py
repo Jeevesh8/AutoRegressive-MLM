@@ -188,7 +188,7 @@ def loss(params, key, init_tree, config, turn=0):
     for batch in batches:
         key, subkey = jax.random.split(key)
         features = featurizer_f(params['comments_encoder'], subkey, 
-                                            batch)
+                                            batch[:, :config['featurizer_max_length']])
         encodings.append(features)
     tree = batch_to_tree(tree, encodings, config['featurizer_batch_size'], 
                          key='comment_embds')
@@ -275,7 +275,7 @@ for _ in range(config['n_epochs']):
 
         if step%100==0 and step!=0:
             print(sum(losses)/100)
-            wandb.log({'loss_on_100_batches':sum(losses)/100})
+            wandb.log({'loss_on_100_batches':sum(losses).item()/100})
             losses = []
 
         if step%1000==0 and step!=0:

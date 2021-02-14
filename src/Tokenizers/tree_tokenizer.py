@@ -1,5 +1,6 @@
 from src.Tokenizers.base_tokenizer import Base_Tokenizer
 from tokenizers.processors import TemplateProcessing
+import jax.numpy as jnp
 
 class Tree_Tokenizer(Base_Tokenizer):
     
@@ -20,23 +21,27 @@ class Tree_Tokenizer(Base_Tokenizer):
         i=0
         if 'author' not in tree:
             lis = ['<s> <unu> '+tree['title']+' </s> '+tree['selftext']+' </s>' ]
+            authors = {}
         else:
             lis = [f'<s> <user_{i}> '+tree['title']+' </s> '+tree['selftext']+' </s>' ]
             authors = {tree['author']:i}        
 
         for id, comment in tree['comments'].items():
+            
             if 'author' not in comment:
                 lis.append('<unu> ' + comment['body'])
-            else:
-                if comment['author'] not in authors:
-                    i+=1
-                    author[comment['author']] = i
+                continue
+            
+            if comment['author'] not in authors:
+                i+=1
+                authors[comment['author']] = i
                 
-                if author[comment['author']]<self.config['max_labelled_users_per_tree']:
-                    author_idx = author[comment['author']]
-                    lis.append( f'<user_{author_idx}> ' + comment['body'] )
-                else:
-                    lis.append('<unu> 'comment['body'])
+            if authors[comment['author']]<self.config['max_labelled_users_per_tree']:
+                author_idx = authors[comment['author']]
+                lis.append( f'<user_{author_idx}> ' + comment['body'] )
+            
+            else:
+                lis.append('<unu> '+comment['body'])
         
         token_ids = jnp.asarray( self.get_token_ids(self.batch_encode_plus(lis)), dtype=jnp.int16)
         
