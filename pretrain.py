@@ -35,7 +35,7 @@ if config['initialize_pretrained']!='':
 
 data_loader = load_reddit_data(config)
 
-eval_data_loader = load_reddit_data(eval_config, mode='eval')
+eval_data_loader = load_reddit_data(config, mode='eval')
 
 """## Training Tokenizer, if not using pre-trained one. """
 
@@ -44,7 +44,6 @@ if config['initialize_pretrained'] == '':
     lm_tokeniser = Tree_Tokenizer(config)
     lm_tokeniser.train_tokenizer(str_iter=data_loader.get_sentences())
 
-"""## Or Load Pre-Trained Tokenizer"""
 else: 
     #Will automatically load pre-trained version if config['pt_hf_tokenizer'] is defined.
     lm_tokeniser = Tree_Tokenizer(config)
@@ -113,7 +112,7 @@ ExtendedEncoder_params = pure_logits_fn.init(subkey, comment_embds,
                                              True, config)
 
 ## Merging pre-trained and initialised parameters
-if config['initialized_pretrained']!='':
+if config['initialize_pretrained']!='':
     
     pt_wts = get_pretrained_weights(config)
 
@@ -189,7 +188,7 @@ def loss(params, key, init_tree, config, turn=0):
     for batch in batches:
         key, subkey = jax.random.split(key)
         features = featurizer_f(params['comments_encoder'], subkey, 
-                                            batch)
+                                batch[:,:config['featurizer_max_length']])
         encodings.append(features)
     tree = batch_to_tree(tree, encodings, config['featurizer_batch_size'], 
                          key='comment_embds')
@@ -274,12 +273,12 @@ for _ in range(config['n_epochs']):
 
         losses.append(batch_loss)
 
-        if step%100==0 and step!=0:
+        if step%100==0:
             print(sum(losses)/100)
-            wandb.log({'loss_on_100_batches':sum(losses)/100})
+            wandb.log({'loss_on_100_batches': sum(losses).item()/100})
             losses = []
 
-        if step%1000==0 and step!=0:
+        if step%1000==0:
             with open(config['params_dir']+f'params{_}.pkl', 'wb+') as f:
                 pickle.dump(params, f)
             wandb.save(config['params_dir']+f'params{_}.pkl')

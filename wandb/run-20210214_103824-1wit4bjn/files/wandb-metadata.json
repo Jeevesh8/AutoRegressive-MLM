@@ -1,0 +1,24 @@
+{
+    "os": "Linux-4.15.0-76-generic-x86_64-with-debian-bullseye-sid",
+    "python": "3.7.0",
+    "heartbeatAt": "2021-02-14T10:38:26.385227",
+    "startedAt": "2021-02-14T10:38:24.749966",
+    "docker": null,
+    "gpu": "Tesla V100-PCIE-32GB",
+    "gpu_count": 1,
+    "cpu_count": 40,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "codePath": "pretrain.py",
+    "program": "pretrain.py",
+    "git": {
+        "remote": "https://github.com/Jeevesh8/AutoRegressive-MLM",
+        "commit": "d905b202297c8e0c8ce164dcc3a2b1e2672e2e8a"
+    },
+    "email": null,
+    "root": "/home/AutoRegressive-MLM",
+    "host": "44181e6adbbe",
+    "username": "root",
+    "executable": "/opt/conda/bin/python"
+}

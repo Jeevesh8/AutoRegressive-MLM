@@ -2,6 +2,7 @@ import haiku as hk
 from haiku.data_structures import to_immutable_dict, to_mutable_dict
 import re, jax
 from typing import List, Tuple
+import numpy as np
 
 def print_keys(params, n=0):
     for key in params:
@@ -17,7 +18,29 @@ def change_keys(dic, key, replace_with):
         dic1[k.replace(key, replace_with, 1)] = dic[k]
     return dic1
 
-def copy_available_keys(dic1, dic2, special_pairs: List[Tuple[str, Tuple[str,str]]]=None):
+def copy_corres_key(dic2, key2, dic1, key1, allow_transpose):
+    """
+    Copies corresponding keys from the dictionary dic1[key1] to dic2[key2],
+    while transposing tensors, if necessary.
+    """
+    
+    def copy_fn(dic2, key2, dic1, key1):
+        if dic2[key2].shape!=dic1[key1].shape:
+            if allow_transpose and dic2[key2].shape==np.transpose(dic1[key1]).shape:
+                dic2[key2] = np.transpose(dic1[key1])
+            else:
+                raise ValueError("Shape mismatch b/w pretrained and initialized weights. Can't load key : ", key1, 
+                                "from initialized wts into the key : ", key2, "of initialized wts.")
+        else:
+            dic2[key2] = dic1[key1]
+    
+    if type(dic2[key2]) is dict:
+        for k in dic2[key2]:
+            copy_fn(dic2[key2], k, dic1[key1], k)
+    else:
+        copy_fn(dic2, key2, dic1, key1)
+    
+def copy_available_keys(dic1, dic2, special_pairs: List[Tuple[str, Tuple[str,str]]]=None, allow_transpose=True):
     """
     Updates the value of any key of dic2 to its corresponding value in dic1, 
     if the key exists in dic1. Else dic2[key] remains unchanged.
@@ -31,18 +54,18 @@ def copy_available_keys(dic1, dic2, special_pairs: List[Tuple[str, Tuple[str,str
     for k in dic2.keys():
         if k in dic1.keys():
             print("Loading Pre-Trained weights for :", k)
-            dic2[k] = dic1[k]
+            copy_corres_key(dic2, k, dic1, k, allow_transpose)
         else:
             print("Can't find weights for  : ", k, " in pretrained wts provided(dic1).") 
     
     if special_pairs is not None:
         
         for (dic1_key, dic2_key) in special_pairs:
-            print("Loading Pre-Trained weights for : ", dic2_key, " to ", dic1_key)
+            print("Loading Pre-Trained weights from : ", dic1_key, " to ", dic2_key)
             if len(dic2_key)==1:
-                dic2[dic2_key[0]] = dic1[dic1_key]
+                copy_corres_key(dic2, dic2_key[0], dic1, dic1_key, allow_transpose)
             elif len(dic2_key)==2:
-                dic2[dic2_key[0]][dic2_key[1]] = dic1[dic1_key]
+                copy_corres_key(dic2[dic2_key[0]], dic2_key[1], dic1, dic1_key, allow_transpose)
 
     return dic2
 
@@ -124,11 +147,11 @@ def add_extra_word_embeddings(w, config):
     """
     stddev = 1. / np.sqrt(config['d_model'])
         
-    n_extra = len(self.config['extra_tokens'])
+    n_extra = len(config['extra_tokens'])
     
     key, subkey = jax.random.split( jax.random.PRNGKey(22) )
     extra_w = stddev*jax.random.truncated_normal(subkey, -2., 2., 
-                                                 shape=[n_extra, self.config['d_model']])        
+                                                 shape=[n_extra, config['d_model']])        
     return jax.numpy.concatenate([w, extra_w], axis=0)
     
 @lru_cache()
@@ -144,7 +167,7 @@ def get_pretrained_weights(config):
         for key, value in weights.items()
     }
     
-    weights['embeddings/word_embeddings/weight'] = add_extra_word_embeddings(weights['embeddings/word_wmbeddings/weight'],
+    weights['embeddings/word_embeddings/weight'] = add_extra_word_embeddings(weights['embeddings/word_embeddings/weight'],
                                                                       config)
     
     weights = change_wts_structure(weights, dont_touch=['embeddings/word_embeddings/weight', 

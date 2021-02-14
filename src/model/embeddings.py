@@ -23,7 +23,7 @@ class Embedding(hk.Module):
 
         token_embeddings = jnp.reshape(flat_token_embeddings, [token_ids.shape[0], -1, self.config['d_model']])
         
-        embeddings = token_embeddings + PositionEmbeddings(self.config)()
+        embeddings = token_embeddings + PositionEmbeddings(self.config)()[:token_embeddings.shape[1], :]
         
         if lang_ids is not None:
             embeddings += LanguageEmbeddings(self.config)(lang_ids)
@@ -46,7 +46,7 @@ class PositionEmbeddings(hk.Module):
     def __init__(self, config):
         super().__init__()
         self.config = config
-        self.offset = 2 if self.config['initialize_pretrained']=='RoBERTa' else 0
+        self.offset = 2 if 'roberta' in self.config['initialize_pretrained'] else 0
 
     def get_init_pe(self):
         

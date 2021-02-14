@@ -1,28 +1,29 @@
 # For Pre-Training From Scratch
 config = {
           'pre_training' : True,
-          'initialize_pretrained' : '',
+          'initialize_pretrained' : 'distilroberta-base',
 
           #Data Parameters
-          'max_length' : 128, 
+          'featurizer_max_length' : 128,
+          'max_length' : 512,
           'featurizer_batch_size' : 4,
           'mlm_batch_size' : 4,
           'n_epochs' : 10,
           
           #Folders containing train_period_data.jsonlist and heldout_period_data.jsonlist
-          'data_folders' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/'],
-          'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
-          'params_dir' : '/content/drive/MyDrive/2SCL/Argumentation/',          #Directory to read from/write to params
+          'data_folders' : ['/content/drive/MyDrive/Argumentation/first_batch_data/'],
+          'discourse_markers_file' : '/content/drive/MyDrive/Argumentation/first_batch_data/Discourse_Markers.txt',
+          'params_dir' : '/content/drive/MyDrive/Argumentation/',          #Directory to read from/write to params
 
           #Model Parameters
-          'intermediate_size' : 256,
-          'n_heads' : 2,
-          'n_layers' : 2,
-          'hidden_size' : 128,
-          'd_model' : 128,                                                      #same as hidden_size
+          'intermediate_size' : 768*4,
+          'n_heads' : 12,
+          'n_layers' : 6,
+          'hidden_size' : 768,
+          'd_model' : 768,                                                      #same as hidden_size
           'max_losses' : 10,                                                    #max. number of losses to backpropagate at once
-          'max_tree_size' : 60,
-          'max_labelled_users_per_tree':8,
+          'max_tree_size' : 4*5,
+          'max_labelled_users_per_tree':10,
           'last_layer' : '',                                                    #Specify(Linear/GRU) when pre_training=False.
 
           #Embeddings Parameters
