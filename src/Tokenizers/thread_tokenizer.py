@@ -5,6 +5,13 @@ class Thread_Tokenizer(Base_Tokenizer):
     def __init__(self, config):
         super().__init__(config)
 
+    def set_up_tokenizer(self):
+        
+        self.tokenizer.enable_truncation(self.config['max_length'])
+
+        self.tokenizer.post_processor = TemplateProcessing(single = "$A:1",
+                                                           pair = "<s>:1 $A:1 </s>:1 </s>:2 $B:2 </s>:2",
+                                                           special_tokens=[('<s>',1), ('</s>',2)])
     def join_tokenized(self, parts, type_ids):
         """
         Joins together tokenized and encoded parts of a comment/post.

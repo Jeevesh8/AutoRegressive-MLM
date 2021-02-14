@@ -64,12 +64,19 @@ class load_xml_data:
 
     def thread_generator(self):
         for xml_string in self.file_loader():
-            thread = []
+            thread, authors, i = [], {}, 0
             xml_string = self.refine_xml(xml_string)
             parsed_xml = BeautifulSoup(xml_string, "xml")
-            thread.append( self.divide_pc(parsed_xml.find('OP').contents) )
-            for elem in parsed_xml.find_all('reply'):
+            
+            for elem in parsed_xml.find_all('reply')+[parsed_xml.find('OP')]:
                 thread.append( self.divide_pc(elem.contents) )
+                
+                if elem['author'] not in authors:
+                    authors[elem['author']]=i
+                    i+=1
+                thread[-1][0][0] = f'<user_{autors[elem['author']]}> '+thread[-1][0][0]
+                
                 if len(thread)==self.config['max_tree_size']:
                     break
+            
             yield thread

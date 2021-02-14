@@ -17,7 +17,9 @@ class Base_Tokenizer:
         if 'pt_hf_tokenizer' in self.config:
             self.load_from_pretrained()
         else:
-            self.trainer = BpeTrainer(special_tokens=['<s>', '</s>', '<unk>', '<pad>', '<mask>', '<url>']+self.dms)
+            self.trainer = BpeTrainer(special_tokens=['<s>', '</s>', '<unk>', '<pad>', '<mask>', '<url>', '<startq>', '<endq>']
+                                                      +[f'<author_{i}>' for i in range(self.config['max_labelled_users_per_tree'])]
+                                                      +self.dms)
 
     def load_from_pretrained(self):
         json_tok = self.save_and_modify()
@@ -62,7 +64,8 @@ class Base_Tokenizer:
         return missing
     
     def add_tokens(self, vocab):
-        self.extra_tokens = ['<url>']+self.get_missing_dms(vocab)       #Tokens to add to RoBertA vocab
+        self.extra_tokens = ['<url>', '<startq>', '<endq>']+self.get_missing_dms(vocab)       #Tokens to add to vocab of pre-trained HuggingFace model
+        self.extra_tokens += [f'<author_{i}>' for i in range(self.config['max_labelled_users_per_tree'])]
         for word in self.extra_tokens:
             vocab[word] = len(vocab)
         self.config['extra_tokens'] = self.extra_tokens
@@ -85,15 +88,6 @@ class Base_Tokenizer:
                 yield self.decode_to_str(batch)
         return str_iter()
     
-    def set_up_tokenizer(self):
-        self.tokenizer.enable_padding(pad_id=self.tokenizer.token_to_id('<pad>'),
-                                      length=self.config['max_length'])
-        
-        self.tokenizer.enable_truncation(self.config['max_length'])
-
-        self.tokenizer.post_processor = TemplateProcessing(single = "<s>:1 $A:1 </s>:1",
-                                                           pair = "<s>:1 $A:1 </s>:1 </s>:2 $B:2 </s>:2",
-                                                           special_tokens=[('<s>',1), ('</s>',2)])
     def decode_to_str(self, batch_text) :
         """
         Converts bytes string data to text. And truncates to max_len. 

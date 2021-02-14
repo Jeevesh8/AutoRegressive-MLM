@@ -13,7 +13,7 @@ config = {
           'data_folders' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/'],
           'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
           'params_dir' : '/content/drive/MyDrive/2SCL/Argumentation/',          #Directory to read from/write to params
-           
+
           #Model Parameters
           'intermediate_size' : 256,
           'n_heads' : 2,
@@ -22,6 +22,7 @@ config = {
           'd_model' : 128,                                                      #same as hidden_size
           'max_losses' : 10,                                                    #max. number of losses to backpropagate at once
           'max_tree_size' : 60,
+          'max_labelled_users_per_tree':8,
           'last_layer' : '',                                                    #Specify(Linear/GRU) when pre_training=False.
 
           #Embeddings Parameters
@@ -67,6 +68,7 @@ config = {
           'd_model' : 768,                                                      #same as hidden_size
           'max_losses' : 2,                                                     #max. number of losses to backpropagate at once
           'max_tree_size' : 20,
+          'max_labelled_users_per_tree':8,
           'last_layer' : '',                                                    #Specify(Linear/GRU) when pre_training=False.
 
           #Embeddings Parameters
@@ -115,6 +117,7 @@ config = {
           'd_model' : 768,                                                      #same as hidden_size
           'max_losses' : 2,                                                     #max. number of losses to backpropagate at once
           'max_tree_size' : 20,
+          'max_labelled_users_per_tree':8,
           'n_classes' : 3,                                                      #Number of classes for argument classification.
           'last_layer' : 'GRU',                                                 #Specify(Linear/GRU) when pre_training=False.
 
