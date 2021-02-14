@@ -24,3 +24,7 @@ ENV LD_LIBRARY_PATH /usr/local/cuda-11.0/lib64:/usr/local/cuda-11.0/extras/CUPTI
 
 RUN pip install --upgrade pip
 RUN pip install --upgrade jax jaxlib==0.1.60+cuda110 -f https://storage.googleapis.com/jax-releases/jax_releases.html
+RUN apt update
+RUN apt install vim
+ENV TOKENIZERS_PARALLELISM true
+RUN pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 torchaudio===0.7.2 -f https://download.pytorch.org/whl/torch_stable.html

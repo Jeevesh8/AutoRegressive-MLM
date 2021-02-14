@@ -51,7 +51,7 @@ class load_reddit_data:
                 post_tree['comments'].remove(comment)
         
         for k in list(post_tree.keys()):        
-            if k not in ['title', 'selftext', 'id', 'comments']:
+            if k not in ['title', 'selftext', 'id', 'comments', 'author']:
                 post_tree.pop(k)
             
         for comment in post_tree['comments']:
@@ -62,7 +62,7 @@ class load_reddit_data:
                 comment['replies'] = []
             
             for k in list(comment.keys()):
-                if k not in ['replies', 'body', 'id', 'parent_id']:
+                if k not in ['replies', 'body', 'id', 'parent_id', 'author']:
                     comment.pop(k)
                 
         post_tree['comments'] = { comment['id'] : comment for comment in post_tree['comments']}
@@ -124,7 +124,7 @@ class load_reddit_data:
         Picks a branch followed by subtree such that total size
         is less than config['max_tree_size']
         """
-        if len(tree['comments'])<=self.config['max_tree_size']:
+        if len(tree['comments'])<self.config['max_tree_size']:
             yield tree
         else :
             top_level_comments = []

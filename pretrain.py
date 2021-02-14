@@ -35,7 +35,7 @@ if config['initialize_pretrained']!='':
 
 data_loader = load_reddit_data(config)
 
-eval_data_loader = load_reddit_data(eval_config, mode='eval')
+eval_data_loader = load_reddit_data(config, mode='eval')
 
 """## Training Tokenizer, if not using pre-trained one. """
 
@@ -112,7 +112,7 @@ ExtendedEncoder_params = pure_logits_fn.init(subkey, comment_embds,
                                              True, config)
 
 ## Merging pre-trained and initialised parameters
-if config['initialized_pretrained']!='':
+if config['initialize_pretrained']!='':
     
     pt_wts = get_pretrained_weights(config)
 

@@ -2,6 +2,7 @@ import haiku as hk
 from haiku.data_structures import to_immutable_dict, to_mutable_dict
 import re, jax
 from typing import List, Tuple
+import numpy as np
 
 def print_keys(params, n=0):
     for key in params:
@@ -60,6 +61,7 @@ def logits_to_ar_classifier_params(pretrained_params, classifier_params):
     #pretrained_params['ar_classifier']['extended_encoder/linear'] = classifier_params['ar_classifier']['auto_regressive_classifier/linear']
     pretrained_params['ar_classifier']['auto_regressive_classifier/~/gru/~/gru'] = classifier_params['ar_classifier']['auto_regressive_classifier/~/gru/~/gru']
     return to_immutable_dict(pretrained_params)
+
 
 #############################################################################################
 #                        HuggingFace Specific Weight Loading Code                           #
@@ -124,11 +126,11 @@ def add_extra_word_embeddings(w, config):
     """
     stddev = 1. / np.sqrt(config['d_model'])
         
-    n_extra = len(self.config['extra_tokens'])
+    n_extra = len(config['extra_tokens'])
     
     key, subkey = jax.random.split( jax.random.PRNGKey(22) )
     extra_w = stddev*jax.random.truncated_normal(subkey, -2., 2., 
-                                                 shape=[n_extra, self.config['d_model']])        
+                                                 shape=[n_extra, config['d_model']])        
     return jax.numpy.concatenate([w, extra_w], axis=0)
     
 @lru_cache()

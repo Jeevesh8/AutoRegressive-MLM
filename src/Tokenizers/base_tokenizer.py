@@ -2,7 +2,6 @@ from tokenizers import Tokenizer
 from tokenizers.models import BPE
 from tokenizers.pre_tokenizers import Whitespace
 from tokenizers.trainers import BpeTrainer
-from tokenizers.processors import TemplateProcessing
 import jax.numpy as jnp
 import json
 
