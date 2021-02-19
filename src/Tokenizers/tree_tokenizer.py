@@ -1,6 +1,6 @@
 from src.Tokenizers.base_tokenizer import Base_Tokenizer
 from tokenizers.processors import TemplateProcessing
-import jax.numpy as jnp
+import numpy as np
 
 class Tree_Tokenizer(Base_Tokenizer):
     
@@ -40,7 +40,7 @@ class Tree_Tokenizer(Base_Tokenizer):
                 else:
                     lis.append('<unu> '+comment['body'])
 
-        token_ids = jnp.asarray( self.get_token_ids(self.batch_encode_plus(lis)), dtype=jnp.int16)
+        token_ids = np.array( self.get_token_ids(self.batch_encode_plus(lis)), dtype=np.int16)
         
         i=0
         tree['tokenized_inputs'] = token_ids[i]

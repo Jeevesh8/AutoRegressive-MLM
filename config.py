@@ -21,8 +21,8 @@ config = {
           'n_layers' : 6,
           'hidden_size' : 768,
           'd_model' : 768,                                                      #same as hidden_size
-          'max_losses' : 10,                                                    #max. number of losses to backpropagate at once
-          'max_tree_size' : 4*5,
+          'max_losses' : 3,                                                    #max. number of losses to backpropagate at once
+          'max_tree_size' : 4*12,
           'max_labelled_users_per_tree':10,
           'last_layer' : '',                                                    #Specify(Linear/GRU) when pre_training=False.
 
@@ -41,7 +41,7 @@ config = {
           'l2' : 0.1,
 
            #colab parameter
-          'restart_from' : 55000,
+          'restart_from' : 0,
           }
 
 ## For pre-training from RoBERTa weights
