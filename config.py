@@ -41,7 +41,7 @@ config = {
           'l2' : 0.1,
 
            #colab parameter
-          'restart_from' : 23000,
+          'restart_from' : 55000,
           }
 
 ## For pre-training from RoBERTa weights
