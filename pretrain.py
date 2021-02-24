@@ -5,7 +5,7 @@ import haiku as hk
 from haiku.data_structures import to_immutable_dict, to_mutable_dict
 import optax
 
-import copy
+import copy, os
 import numpy as np
 from functools import partial
 from copy import deepcopy
@@ -132,6 +132,11 @@ if config['initialize_pretrained']!='':
 
 params = to_immutable_dict( {'comments_encoder' : featurizer_params, 
                              'mlm_predictor' : ExtendedEncoder_params } )
+
+param_idx = config['restart_from']//config['total_steps']
+if os.path.isfile(config['params_dir']+f'params_{param_idx}'):
+    with open(config['params_dir']+f'params_{param_idx}', 'rb') as f:
+        params = pickle.load(f)
 
 def pure_featurizer(training, config, params, key, token_ids):
     key, subkey = jax.random.split(key)

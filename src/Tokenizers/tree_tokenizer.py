@@ -1,6 +1,6 @@
 from src.Tokenizers.base_tokenizer import Base_Tokenizer
 from tokenizers.processors import TemplateProcessing
-import jax.numpy as jnp
+import numpy as np
 
 class Tree_Tokenizer(Base_Tokenizer):
     
@@ -17,7 +17,6 @@ class Tree_Tokenizer(Base_Tokenizer):
                                                            pair = "<s>:1 $A:1 </s>:1 </s>:2 $B:2 </s>:2",
                                                            special_tokens=[('<s>',1), ('</s>',2)])
     def tokenize_tree(self, tree):
-        
         i=0
         if 'author' not in tree:
             lis = ['<s> <unu> '+tree['title']+' </s> '+tree['selftext']+' </s>' ]
@@ -27,23 +26,21 @@ class Tree_Tokenizer(Base_Tokenizer):
             authors = {tree['author']:i}        
 
         for id, comment in tree['comments'].items():
-            
             if 'author' not in comment:
                 lis.append('<unu> ' + comment['body'])
-                continue
-            
-            if comment['author'] not in authors:
-                i+=1
-                authors[comment['author']] = i
-                
-            if authors[comment['author']]<self.config['max_labelled_users_per_tree']:
-                author_idx = authors[comment['author']]
-                lis.append( f'<user_{author_idx}> ' + comment['body'] )
-            
             else:
-                lis.append('<unu> '+comment['body'])
-        
-        token_ids = jnp.asarray( self.get_token_ids(self.batch_encode_plus(lis)), dtype=jnp.int16)
+                if comment['author'] not in authors:
+                    i+=1
+                    authors[comment['author']] = i
+                    
+                if authors[comment['author']]<self.config['max_labelled_users_per_tree']:
+                    author_idx = authors[comment['author']]
+                    lis.append( f'<user_{author_idx}> ' + comment['body'] )
+                
+                else:
+                    lis.append('<unu> '+comment['body'])
+            
+        token_ids = np.array( self.get_token_ids(self.batch_encode_plus(lis)), dtype=np.int16)
         
         i=0
         tree['tokenized_inputs'] = token_ids[i]

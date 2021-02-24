@@ -168,7 +168,7 @@ def get_pretrained_weights(config):
         for key, value in weights.items()
     }
     
-    weights['embeddings/word_embeddings/weight'] = add_extra_word_embeddings(weights['embeddings/word_wmbeddings/weight'],
+    weights['embeddings/word_embeddings/weight'] = add_extra_word_embeddings(weights['embeddings/word_embeddings/weight'],
                                                                       config)
     
     weights = change_wts_structure(weights, dont_touch=['embeddings/word_embeddings/weight', 

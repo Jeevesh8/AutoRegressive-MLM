@@ -63,14 +63,14 @@ config = {
           'params_dir' : '/content/drive/MyDrive/2SCL/Argumentation/',          #Directory to read from/write to params 
 
           #Model Parameters
-          'intermediate_size' : 3072,
+          'intermediate_size' : 768*4,
           'n_heads' : 12,
           'n_layers' : 6,
           'hidden_size' : 768,
           'd_model' : 768,                                                      #same as hidden_size
-          'max_losses' : 2,                                                     #max. number of losses to backpropagate at once
-          'max_tree_size' : 20,
-          'max_labelled_users_per_tree':8,
+          'max_losses' : 5,                                                     #max. number of losses to backpropagate at once
+          'max_tree_size' : 60,
+          'max_labelled_users_per_tree':10,
           'last_layer' : '',                                                    #Specify(Linear/GRU) when pre_training=False.
 
           #Embeddings Parameters
@@ -123,6 +123,7 @@ config = {
           'max_tree_size' : 20,
           'max_labelled_users_per_tree':8,
           'n_classes' : 3,                                                      #Number of classes for argument classification.
+          'class_names':['Non-Argumentative', 'Claim', 'Premise'],
           'last_layer' : 'GRU',                                                 #Specify(Linear/GRU) when pre_training=False.
 
           #Embeddings Parameters

@@ -283,6 +283,18 @@ class GRU(hk.Module):
             outputs.append(output)
         return jnp.stack(outputs, axis=1)
 
+class CRF(hk.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.config = config
+    
+    def __call__(self, feats):
+        """
+        feats: logits output by the network before
+        """
+        hk.get_parameter('transitions', 
+                        shape=[self.config['n_classes'], self.config['n_classes']],
+                        init=hk.initializers.Constant(get_))
 @gin.configurable
 class FineTuningExtendedEncoder(BaseExtendedEncoder):
     """
@@ -297,7 +309,7 @@ class FineTuningExtendedEncoder(BaseExtendedEncoder):
         elif config['last_layer']=='Linear':
             self.last_layer = hk.Linear(output_size=config['n_classes'])
         else:
-            raise ValueError("No implementation for finetuning with last layer as : ", config['last_layer'])
+            raise NotImplementedError("No implementation for finetuning with last layer as : ", config['last_layer'])
     
     def __call__(self, comment_embds, comments_mask, masked_token_ids, training=False):
         y = super().__call__(comment_embds, comments_mask, masked_token_ids, training=training)
