@@ -1,7 +1,7 @@
 # Script to convert AMPERSAND xml data into CoNLL format
 
 import os, re
-from bs4 import bs4
+import bs4
 from bs4 import BeautifulSoup
 import argparse
 
@@ -144,15 +144,25 @@ def build_CoNLL(parsed_xml: bs4.BeautifulSoup, thread_wise: bool=True):
             
             if elem.startswith('<claim'):
                 parsed_claim = BeautifulSoup(elem, "xml")
-                add_cp(clean_text( str(parsed_claim.find('claim').contents[0]) ),
-                       ref_dic, parsed_claim.find('claim')['id'], parsed_claim.find('claim')['ref'], 
-                       parsed_claim.find('claim')['rel'])
+                try:
+                    add_cp(clean_text( str(parsed_claim.find('claim').contents[0]) ),
+                           ref_dic, parsed_claim.find('claim')['id'], parsed_claim.find('claim')['ref'], 
+                           parsed_claim.find('claim')['rel'])
+                except:
+                    add_cp(clean_text( str(parsed_claim.find('claim').contents[0]) ),
+                           ref_dic, parsed_claim.find('claim')['id'], None, 
+                           None)
                 
             elif elem.startswith('<premise'):
                 parsed_premise = BeautifulSoup(elem, "xml")
-                add_cp(clean_text( str(parsed_premise.find('premise').contents[0]) ),
-                       ref_dic, parsed_premise.find('premise')['id'], parsed_premise.find('premise')['ref'], 
-                       parsed_premise.find('premise')['rel'], 'P')
+                try:
+                    add_cp(clean_text( str(parsed_premise.find('premise').contents[0]) ),
+                           ref_dic, parsed_premise.find('premise')['id'], parsed_premise.find('premise')['ref'], 
+                           parsed_premise.find('premise')['rel'], 'P')
+                except:
+                    add_cp(clean_text( str(parsed_premise.find('premise').contents[0]) ),
+                           ref_dic, parsed_premise.find('premise')['id'], None, 
+                           None, 'P')
         
             else:
                 i = int(str_to_write[-1].split('\t')[0])+1 if str_to_write[-1]!='\n' else 1
@@ -168,15 +178,15 @@ str_to_write = []
 if __name__=='__main__':
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--folder', type='str', help='Folder having the .xml files of AMPERSAND data.')
+    parser.add_argument('--folder', type=str, help='Folder having the .xml files of AMPERSAND data.')
     parser.add_argument('--post_wise', action='store_true', 
                         help='if this flag is provided, then the inter-comment relations will be ignored and data will be constructed in a post-by-post format.')
-    parser.add_argument('--write_file', type='str', help='Filename where the script should write the data in CoNLL format.')
+    parser.add_argument('--write_file', type=str, help='Filename where the script should write the data in CoNLL format.')
     
     args = parser.parse_args()
     
     for f in os.listdir(args.folder):
-        filename = os.path.join(folder, f)
+        filename = os.path.join(args.folder, f)
         if os.path.isfile(filename) and filename.endswith('.xml'):
             with open(filename, 'r') as g:
                 xml_str = g.read()
