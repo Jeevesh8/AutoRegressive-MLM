@@ -1,6 +1,7 @@
 # Script to convert AMPERSAND xml data into CoNLL format
 
 import os, re
+from bs4 import bs4
 from bs4 import BeautifulSoup
 import argparse
 
@@ -112,7 +113,7 @@ def refine_ref_dic(post: bs4.element.Tag, ref_dic: dict) -> dict:
     
     return new_ref_dic
 
-def build_conll(parsed_xml: bs4.BeautifulSoup, thread_wise: bool=True):
+def build_CoNLL(parsed_xml: bs4.BeautifulSoup, thread_wise: bool=True):
     """
     parsed_xml: the output of parsing the entire xml string of a .xml file in AMPERSAND
     thread_wise: boolean to choose whether to write entire thread as one unit 
@@ -180,7 +181,7 @@ if __name__=='__main__':
             with open(filename, 'r') as g:
                 xml_str = g.read()
             parsed_xml = BeautifulSoup(xml_str, "xml")        
-            build_conll(parsed_xml, not args.post_wise)
+            build_CoNLL(parsed_xml, not args.post_wise)
 
     with open(args.write_file, 'w') as f:
         for elem in str_to_write:
