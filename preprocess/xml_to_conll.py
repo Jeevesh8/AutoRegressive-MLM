@@ -79,7 +79,7 @@ def add_cp(cp_text: str, ref_dic: dict, id: str, ref: str=None, rel :str=None, t
         str_to_write.append(str(i)+'\t'+token+'\t'+relation_entry)
         i+=1
 
-def refine_ref_dic(post: bs4.element.Tag, ref_dic: dict) -> dict:
+def refine_ref_dic(post: bs4.element.Tag, ref_dic: dict, start_idx: int) -> dict:
     """
     Filters ref_dic to remove references to claim/premise outside of the post given. 
     If such references are not there, then add_cp will not include inter-turn relations.
@@ -89,12 +89,14 @@ def refine_ref_dic(post: bs4.element.Tag, ref_dic: dict) -> dict:
     
     ref_dic: dictionary with keys as ids of claims/premises and values as the line number they will start on.
 
+    start_idx: Index in str_to_write, from where the posts of current thread start.
+
     Returns: the filtered dictionary
     """
     global str_to_write
     last_index = 0
-    for j, elem in enumerate(str_to_write[1:]):
-        if str_to_write[j+1]=='\n' :
+    for j, elem in enumerate(str_to_write[start_idx:], start=start_idx):
+        if j+1<len(str_to_write) and str_to_write[j+1]=='\n':
             last_index += int(str_to_write[j].split('\t')[0])
 
     new_ref_dic = {}
@@ -126,6 +128,8 @@ def build_CoNLL(parsed_xml: bs4.BeautifulSoup, thread_wise: bool=True):
     if len(str_to_write)==0 or str_to_write[-1]!='\n':
         str_to_write.append('\n')
     
+    start_idx = len(str_to_write)-1
+    
     temp_ref_dic = make_ref_dic(parsed_xml)
     
     title_text = str(parsed_xml.find('title').find('claim').contents[0])
@@ -136,7 +140,7 @@ def build_CoNLL(parsed_xml: bs4.BeautifulSoup, thread_wise: bool=True):
         if thread_wise:
             ref_dic = temp_ref_dic
         else:
-            ref_dic = refine_ref_dic(post, temp_ref_dic)
+            ref_dic = refine_ref_dic(post, temp_ref_dic, start_idx)
         
         for elem in post.contents:
         
@@ -196,5 +200,3 @@ if __name__=='__main__':
     with open(args.write_file, 'w') as f:
         for elem in str_to_write:
             f.write(elem+'\n' if not elem.endswith('\n') else elem)
-
-    
