@@ -51,6 +51,7 @@ if __name__=='__main__':
     parser.add_argument('--folder', type=str, required=True, help='Folder having the .xml files of https://github.com/chridey/change-my-view-modes/ data.')
     parser.add_argument('--write_file', type=str, required=True, help='Filename where the script should write the data in tsv format.')
     parser.add_argument('--numbered', action='store_true', help='If this flag is provided, the sentence numbers are omitted.')
+    parser.add_argument('--append', action='store_true', help='If this flag is provided, the new data is appended to write file.')
     args = parser.parse_args()
     
     for f in os.listdir(args.folder):
@@ -61,7 +62,7 @@ if __name__=='__main__':
             parsed_xml = BeautifulSoup(xml_str, "xml")        
             build_tsv(parsed_xml)    
 
-    with open(args.write_file, 'w') as f:
+    with open(args.write_file, 'a' if args.append else 'w') as f:
         for elem in str_to_write:
             if not args.numbered:
                 elem = '\t'.join(elem.split('\t')[1:])
