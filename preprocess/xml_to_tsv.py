@@ -2,8 +2,11 @@
 Script to convert the xml data of https://github.com/chridey/change-my-view-modes/ 
 to the tsv required for AMPERSAND evaluation.
 
-Format of tsv generated :
+Format of tsv generated (with --numbered flag):
 <sentence_no>    <sentence>    <Other|Claim|Premise>
+
+Format of tsv generated (without --numbered flag):
+<sentence>    <Other|Claim|Premise>
 """
 
 import os, re
@@ -47,7 +50,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--folder', type=str, required=True, help='Folder having the .xml files of https://github.com/chridey/change-my-view-modes/ data.')
     parser.add_argument('--write_file', type=str, required=True, help='Filename where the script should write the data in tsv format.')
-    
+    parser.add_argument('--numbered', action='store_true', help='If this flag is provided, the sentence numbers are omitted.')
     args = parser.parse_args()
     
     for f in os.listdir(args.folder):
@@ -60,4 +63,6 @@ if __name__=='__main__':
 
     with open(args.write_file, 'w') as f:
         for elem in str_to_write:
+            if not args.numbered:
+                elem = '\t'.join(elem.split('\t')[1:])
             f.write(elem+'\n' if not elem.endswith('\n') else elem)
