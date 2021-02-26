@@ -71,7 +71,7 @@ def add_cols(str_lis : List[str], components: List[Tuple[int, str]], args) -> Li
             rel_type = str(None)
             d = str(None)
         
-        rel_entry = first_extra_col+':'+d+':'+rel_type
+        rel_entry = first_extra_col if rel_entry.startswith('O') else first_extra_col+':'+d+':'+rel_type
         
         elem = ( ('' if args.remove_line_no else pos + '\t') +
                   token + '\t' + ('' if args.remove_relations else rel_entry + '\t')+
