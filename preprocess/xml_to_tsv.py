@@ -57,3 +57,7 @@ if __name__=='__main__':
                 xml_str = g.read()
             parsed_xml = BeautifulSoup(xml_str, "xml")        
             build_tsv(parsed_xml)    
+
+    with open(args.write_file, 'w') as f:
+        for elem in str_to_write:
+            f.write(elem+'\n' if not elem.endswith('\n') else elem)
