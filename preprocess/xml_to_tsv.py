@@ -28,16 +28,21 @@ def clean_text(text: str) -> str:
     text = text.lower()
     return text
 
+def refine_xml(self, xml_string):
+        xml_string = re.sub(r'<claim [^>]*>', r'<claim>', xml_string)
+        xml_string = re.sub(r'<premise [^>]*>', r'<premise>', xml_string)
+        return xml_string
+
 def build_tsv(parsed_xml):
     global str_to_write
 
     for post in [parsed_xml.find('OP')]+parsed_xml.find_all('reply'):
         for elem in post.contents:
             elem = str(elem)
-            if elem.startswith('<claim'):
+            if elem.startswith('<claim>'):
                 elem = clean_text(elem[7:-8])
                 str_to_write.append(str(len(str_to_write))+'\t'+elem+'\t'+'C')
-            elif elem.startswith('<premise'):
+            elif elem.startswith('<premise>'):
                 elem = clean_text(elem[9:-10])
                 str_to_write.append(str(len(str_to_write))+'\t'+elem+'\t'+'P')
             else:
@@ -59,7 +64,7 @@ if __name__=='__main__':
         if os.path.isfile(filename) and filename.endswith('.xml'):
             with open(filename, 'r') as g:
                 xml_str = g.read()
-            parsed_xml = BeautifulSoup(xml_str, "xml")        
+            parsed_xml = BeautifulSoup(refine_xml(xml_str), "xml")        
             build_tsv(parsed_xml)    
 
     with open(args.write_file, 'a' if args.append else 'w') as f:
