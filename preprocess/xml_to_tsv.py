@@ -3,10 +3,10 @@ Script to convert the xml data of https://github.com/chridey/change-my-view-mode
 to the tsv required for AMPERSAND evaluation.
 
 Format of tsv generated (with --numbered flag):
-<sentence_no>    <sentence>    <Other|Claim|Premise>
+<sentence_no>    <sentence>    <O|C|P>
 
 Format of tsv generated (without --numbered flag):
-<sentence>    <Other|Claim|Premise>
+<sentence>    <O|C|P>
 """
 
 import os, re
@@ -36,13 +36,13 @@ def build_tsv(parsed_xml):
             elem = str(elem)
             if elem.startswith('<claim'):
                 elem = clean_text(elem[7:-8])
-                str_to_write.append(str(len(str_to_write))+'\t'+elem+'\t'+'Claim')
+                str_to_write.append(str(len(str_to_write))+'\t'+elem+'\t'+'C')
             elif elem.startswith('<premise'):
                 elem = clean_text(elem[9:-10])
-                str_to_write.append(str(len(str_to_write))+'\t'+elem+'\t'+'Premise')
+                str_to_write.append(str(len(str_to_write))+'\t'+elem+'\t'+'P')
             else:
                 elem = clean_text(elem)
-                str_to_write.append(str(len(str_to_write))+'\t'+elem+'\t'+'Other')
+                str_to_write.append(str(len(str_to_write))+'\t'+elem+'\t'+'O')
 
 str_to_write = []
 if __name__=='__main__':
