@@ -47,6 +47,8 @@ def build_tsv(parsed_xml):
                 str_to_write.append(str(len(str_to_write))+'\t'+elem+'\t'+'P')
             else:
                 elem = clean_text(elem)
+                if len(elem)<=1:
+                    continue
                 str_to_write.append(str(len(str_to_write))+'\t'+elem+'\t'+'O')
 
 str_to_write = []
