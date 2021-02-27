@@ -28,7 +28,7 @@ def clean_text(text: str) -> str:
     text = text.lower()
     return text
 
-def refine_xml(self, xml_string):
+def refine_xml(xml_string):
         xml_string = re.sub(r'<claim [^>]*>', r'<claim>', xml_string)
         xml_string = re.sub(r'<premise [^>]*>', r'<premise>', xml_string)
         return xml_string
