@@ -140,7 +140,7 @@ if os.path.isfile(config['params_dir']+f'params_{param_idx}'):
 
 def pure_featurizer(training, config, params, key, token_ids):
     key, subkey = jax.random.split(key)
-    comment_embds = pure_featurizer_fn.apply(params, subkey, comment_ids, True, config)
+    comment_embds = pure_featurizer_fn.apply(params, subkey, token_ids, True, config)
     return comment_embds
 
 def pure_logits(training, config, params, key, comment_embds, comment_mask, masked_token_ids):
@@ -239,12 +239,14 @@ opt_state = opt.init(params)
 
 def update(opt_state, params, key, tree, config):
     turn = 0
-    (batch_loss, remaining_comments), grad = jax.value_and_grad(loss, has_aux=True)(params, key, tree, config, turn)
+    key, subkey = jax.random.split(key)
+    (batch_loss, remaining_comments), grad = jax.value_and_grad(loss, has_aux=True)(params, subkey, tree, config, turn)
     turn += 1
 
     while remaining_comments:
         print("Big tree, turn: ", turn)
-        tup, grads = jax.value_and_grad(loss, has_aux=True)(params, key, tree, config, turn)
+        key, subkey = jax.random.split(key)
+        tup, grads = jax.value_and_grad(loss, has_aux=True)(params, subkey, tree, config, turn)
         turn += 1
         batch_loss += tup[0]
         grad = jax.tree_util.tree_multimap(lambda x,y: x+y, grad, grads) 
