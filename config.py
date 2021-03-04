@@ -142,5 +142,68 @@ config = {
           
           #colab parameter
           'restart_from' : 0,
+
+          #Loss Parameters
+          'loss_layer': 'softmax',
+          }
+'''
+
+## For FineTuning with CRF layer
+'''
+config = {
+          'pre_training' : False,
+          'initialize_pretrained' : '',
+          'params_file' : <path-to-pretrained-wts-file>,                        #Path to parameters obtained from pre-training.
+
+          #Data Parameters
+          'max_length' : 512, 
+          'featurizer_max_length': 128,                                         #Max. length of previous posts/comments(which are sent into featurizer)
+          'featurizer_batch_size' : 4,
+          'mlm_batch_size' : 4,
+          'n_epochs' : 10,
+          
+          ## Folders containing fine-tuning data. Each of these must have train/, test/, valid/, subfolders.
+          'ft_data_folders' : [ '/content/drive/MyDrive/2SCL/Argumentation/finetune-data/change-my-view-modes/v2.0/negative/', 
+                                '/content/drive/MyDrive/2SCL/Argumentation/finetune-data/change-my-view-modes/v2.0/positive/'],
+
+          'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
+          'params_dir' : '/content/drive/MyDrive/2SCL/Argumentation/',          #Directory to read from/write to params 
+
+          #Model Parameters
+          'intermediate_size' : 3072,
+          'n_heads' : 12,
+          'n_layers' : 6,
+          'hidden_size' : 768,
+          'd_model' : 768,                                                      #same as hidden_size
+          'max_losses' : 2,                                                     #max. number of losses to backpropagate at once
+          'max_tree_size' : 20,
+          'max_labelled_users_per_tree':8,
+          'n_classes' : 5,                                                      #Number of classes for argument classification.
+          'class_names':['Non-Argumentative', 'B-Claim', 'B-Premise', 'I-Claim', 'I-premise'],
+          'last_layer' : 'crf',                                                 #Specify(Linear/GRU/crf) when pre_training=False.
+
+          #Embeddings Parameters
+          'embed_dropout_rate' : 0.1,
+          
+          #MHA parameters
+          'attention_drop_rate' : 0.1,
+          
+          #MLP parameters
+          'fully_connected_drop_rate' : 0.1,
+          
+          #Training Parameters
+          'learning_rate' : 1e-5,
+          'max_grad_norm' : 1.0,
+          'l2' : 0.1,
+          
+          #colab parameter
+          'restart_from' : 0,
+          
+          #Loss Parameters
+          'transition_init':[[1.0, -10000., -10000., 1.0, 1.0],
+                             [1.0, -10000., -10000., 1.0, 1.0],
+                             [1.0, -10000., -10000., 1.0, 1.0],
+                             [-10000., 1.0, -10000., 1.0, -10000.],
+                             [-10000., -10000., 1.0, -10000., 1.0]]
           }
 '''

@@ -2,7 +2,6 @@ import haiku as hk
 import jax.numpy as jnp
 import jax
 import numpy as np
-from src.model.utils import Scope
 
 class Embedding(hk.Module):
     

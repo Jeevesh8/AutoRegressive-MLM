@@ -11,11 +11,19 @@ class load_reddit_data:
             self.dms = self.get_discourse_markers(config['discourse_markers_file'])
 
     def file_loader(self):
+        """
+        A generator that yields the text contents of all 
+        the files in config['data_folders']
+        """
+        
         for folder in self.config['data_folders']:
             f = os.path.join(folder,self.data_file)
             yield jsonlist.load_file(f)
     
-    def mask_disc_markers(self, text):
+    def mask_disc_markers(self, text: str) -> str:
+        """
+        Replaces all the discourse markers in text with <mask>
+        """
         punctuations = ".?!;:-()\'\"[]"
         for elem in punctuations:
             text = text.replace(elem, ' '+elem+' ')
@@ -24,8 +32,11 @@ class load_reddit_data:
             text.replace(' '+dm+' ', ' <mask> '*len(dm.split()))
         return text
 
-    def clean_text(self, text):
-        
+    def clean_text(self, text: str) -> str:
+        """
+        Performs basic cleaning of text, handles URLs and 
+        quotes by adding additional tags.
+        """
         text = text.strip(' _\t\n')
         text = text.split('____')[0]                                                    #To remove footnotes
         text = text.strip(' _\t\n')
@@ -40,9 +51,9 @@ class load_reddit_data:
             text = self.mask_disc_markers(text)
         return text
     
-    def remove_redundant(self, post_tree):
+    def remove_redundant(self, post_tree: dict) -> dict:
         """
-        Removes redundant keys from the data dictionary.
+        Removes redundant keys from the post_tree.
         And changes the the comments list into a dictionary with the comment_id as key.
         """
         
@@ -68,7 +79,30 @@ class load_reddit_data:
         post_tree['comments'] = { comment['id'] : comment for comment in post_tree['comments']}
         return post_tree
     
-    def cleaning_pipeline(self, tree):
+    def resolve_empty_comments(self, tree: dict, empty_comments: List[str]):
+        """
+        Removes empty comments from the tree and assigns
+        children of empty comments are assigned to their parents.
+        If no parents are found, the parent of children of empty comments, 
+        is set as the root of the tree.
+        """
+        empty_comments_dict = {}
+        for id in empty_comments:
+            empty_comments_dict[id] = tree['comments'][id]
+            tree['comments'].pop(id)
+        
+        for id, comment in tree['comments'].items():
+            parent_id = comment['parent_id']
+            while parent_id in empty_comments:
+                parent_id = empty_comments_dict[parent_id]['parent_id'][3:]
+            comment['parent_id'] = parent_id if parent_id in tree['comments'] else tree['id']
+        return tree
+
+    def cleaning_pipeline(self, tree: dict):
+        """
+        Implements the entire cleaning pipeline. Removes Redundant keys,
+        followed by cleaning text, and then handles empty comments
+        """
         tree = self.remove_redundant(tree)
         tree['selftext'] = self.clean_text(tree['selftext'])
         tree['title'] = self.clean_text(tree['title'])
@@ -81,19 +115,9 @@ class load_reddit_data:
             else: 
                 empty_comments.append(id)
                 print('Skipping empty comment : ', id, tree['comments'][id])
-
-        empty_comments_dict = {}
-        for id in empty_comments:
-            empty_comments_dict[id] = tree['comments'][id]
-            tree['comments'].pop(id)
         
-        #Children of empty comments are assigned to their parents
-        for id, comment in tree['comments'].items():
-            parent_id = comment['parent_id']
-            while parent_id in empty_comments:
-                parent_id = empty_comments_dict[parent_id]['parent_id'][3:]
-            comment['parent_id'] = parent_id if parent_id in tree['comments'] else tree['id']
-                
+        tree = self.resolve_empty_comments(tree, empty_comments)
+
         return tree
     
     def new_branch_tree(self, tree, ids):

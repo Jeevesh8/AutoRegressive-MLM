@@ -1,19 +1,38 @@
+from copy import deepcopy
+
 from sklearn.metrics import classification_report
+import numpy as np
 import jax.numpy as jnp
 import jax
 import haiku as hk
-from copy import deepcopy
 
-def ft_cross_entropy(config, original_batch, logits, masked_token_ids):
-    logits_mask = (masked_token_ids!=config['pad_id'])
-    logits = jax.vmap(jnp.multiply, (None,2), 2)(logits_mask,logits)
-    labels = hk.one_hot(original_batch, config['n_classes'])
-    softmax_xent = -jnp.sum(labels*jax.nn.log_softmax(logits))
-    total_masks = jnp.sum(logits_mask)
-    if total_masks==0:
-        return jnp.zeros(())
-    softmax_xent /= total_masks
-    return softmax_xent
+def get_sample_inp(config):
+    
+    token_ids = np.random.randint(config['vocab_size'], size=(config['mlm_batch_size'], config['max_length']))
+    comment_ids = np.random.randint(config['vocab_size'], size=(config['featurizer_batch_size'], config['max_length']))
+    return token_ids, comment_ids
+
+def get_params(config, key, pure_loss_fn, pure_featurizer_fn):
+    
+    token_ids, comment_ids = get_sample_inp(config)
+
+    masked_token_ids = token_ids
+    masked_token_ids[np.random.randint(config['mlm_batch_size'], size=3),np.random.randint(config['mlm_batch_size'], size=3)] = 0
+
+    key, subkey = jax.random.split(key)
+    featurizer_params = pure_featurizer_fn.init(subkey, comment_ids, True, config)
+    comment_embds = pure_featurizer_fn.apply(featurizer_params, subkey, comment_ids, True, config)
+
+    comment_embds = jnp.tile(comment_embds, config['max_length']).reshape(config['mlm_batch_size'], config['max_length'], -1)
+    comment_mask = jnp.ones_like(comment_embds[:,:,0])
+    
+    key, subkey = jax.random.split(key)
+    
+    ExtendedEncoder_params = pure_loss_fn.init(subkey, comment_embds, 
+                                               comment_mask, masked_token_ids, token_ids,
+                                               True, config)
+    
+    return featurizer_params, ExtendedEncoder_params
 
 def get_batched_version(elem_lis, batch_size, empty_elem):
     extra = len(elem_lis)%batch_size
@@ -36,9 +55,8 @@ def remove_pad_preds(all_preds, all_labels):
     
     return pad_removed_preds, pad_removed_labels
 
-def accuracy_pred(config, labels, logits, batch):
+def get_pred_list(config, labels, preds, batch):
 
-    preds = jnp.argmax(logits, axis=-1)
     logits_mask = (batch!=config['pad_id'])
     preds = jnp.where(logits_mask, preds, -1)
     
@@ -47,35 +65,12 @@ def accuracy_pred(config, labels, logits, batch):
 
     return remove_pad_preds(all_preds, all_labels)
 
-
-"""## Loss for FineTuning"""
-
-def ft_loss(featurizer_f, logits_f, params, key, init_thread, config, turn=0, mode='loss'):
-    """
-    init_thread:  list of jnp.arrays having token ids.
-    mode: can be loss or accuracy.
-    """
-    thread = deepcopy(init_thread[0])
-    labels = deepcopy(init_thread[1])
-    
-    if mode=='accuracy':
-        all_preds = []
-        all_labels = []
-    else:
-        loss = 0.0
-    
-    remaining_comments = False
-
+def get_encoder_batches(config, thread):
     empty_elem = jnp.asarray([config['pad_id']]*config['max_length'], dtype=jnp.int16)
-    
-    batches = get_batched_version(thread, config['featurizer_batch_size'], empty_elem)
-    
-    encodings = []
-    for batch in batches:
-        key, subkey = jax.random.split(key)
-        features = featurizer_f(params['comments_encoder'], subkey, 
-                                            batch)
-        encodings+=[elem for elem in features]
+    return get_batched_version(thread, config['featurizer_batch_size'], empty_elem)
+
+def get_decoder_batches(config, thread, encodings, labels):
+    batches = get_encoder_batches(config, thread)
     
     parent_encodings = [jnp.stack( encodings[:i]+[ jnp.zeros_like(encodings[0]) ]*(config['max_length']-i) ) 
                         for i in range(min(len(encodings), config['max_length']))]
@@ -87,27 +82,62 @@ def ft_loss(featurizer_f, logits_f, params, key, init_thread, config, turn=0, mo
     parent_mask_lis = get_batched_version(parent_mask_lis, config['featurizer_batch_size'], parent_mask_lis[0])
     label_batches = get_batched_version(labels, config['featurizer_batch_size'], labels[0])
     
-    for i, (batch, parent_batch, parent_mask, labels) in enumerate( zip(batches, parent_encodings, parent_mask_lis, label_batches) ):
-        
+    return zip(batches, parent_encodings, parent_mask_lis, label_batches)
+
+"""## Loss for FineTuning"""
+def compute_ar_loss(loss_f, params, key, config, thread, encodings, labels):
+    loss = 0.0
+
+    for i, (batch, parent_batch, parent_mask, labels) in enumerate( get_decoder_batches(config, thread, encodings, labels) ):
         if i<turn*config['max_losses']:
             continue
-        
         if i==(turn+1)*config['max_losses']:
-            remaining_comments=True
-            break
+            return (loss, True)
     
         key, subkey = jax.random.split(key)
-        logits = logits_f(params['ar_classifier'], subkey, parent_batch, 
-                             parent_mask, batch)
+        loss += loss_f(params['ar_classifier'], subkey, parent_batch, 
+                        parent_mask, batch, labels)
+          
+    return (loss, False)
+
+def compute_ar_accuracy(pred_f, params, key, config, thread, encodings, labels, turn)        
+    all_preds = []
+    all_labels = []
+    
+    for i, (batch, parent_batch, parent_mask, labels) in enumerate( get_decoder_batches(config, thread, encodings, labels) ):
+        if i<turn*config['max_losses']:
+            continue
+        if i==(turn+1)*config['max_losses']:
+            return ((all_preds, all_labels), True)
+    
+        key, subkey = jax.random.split(key)
+        preds = pred_f(params['ar_classifier'], subkey, parent_batch, 
+                        parent_mask, batch)
         
-        if mode=='accuracy':
-            preds, labels = accuracy_pred(config, labels, logits, batch)	
-            all_preds += preds
-            all_labels += labels
-        else:
-            loss += ft_cross_entropy(config, labels, logits, batch)
+        preds, labels = get_pred_list(config, labels, preds, batch)	
         
+        all_preds += preds
+        all_labels += labels
+    
+    return ((all_preds, all_labels), False)
+            
+def ft_loss(featurizer_f, loss_f, params, key, init_thread, config, turn=0, mode='loss'):
+    """
+    init_thread:  list of jnp.arrays having token ids.
+    mode: can be loss or accuracy.
+    """
+    thread = deepcopy(init_thread[0])
+    labels = deepcopy(init_thread[1])
+    
+    encodings = []
+    for batch in get_encoder_batches(config, thread):
+        key, subkey = jax.random.split(key)
+        features = featurizer_f(params['comments_encoder'], subkey, batch)
+        encodings+=[elem for elem in features]    
+
+    key, subkey = jax.random.split(key)    
+    
     if mode=='accuracy':
-        return (all_preds, all_labels), remaining_comments
-        
-    return loss, remaining_comments
+        return compute_ar_accuracy(loss_f, params, subkey, config, thread, encodings, labels, turn)    
+    
+    return compute_ar_loss(loss_f, params, subkey, config, thread, encodings, labels, turn)

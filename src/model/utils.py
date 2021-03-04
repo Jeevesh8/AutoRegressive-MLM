@@ -1,8 +1,10 @@
+import re
+from typing import List, Tuple
+
+import numpy as np
+import jax
 import haiku as hk
 from haiku.data_structures import to_immutable_dict, to_mutable_dict
-import re, jax
-from typing import List, Tuple
-import numpy as np
 
 def print_keys(params, n=0):
     for key in params:
