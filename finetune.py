@@ -11,7 +11,6 @@ import jax.numpy as jnp
 import haiku as hk
 from haiku.data_structures import to_immutable_dict, to_mutable_dict
 import optax
-from sklearn.metrics import classification_report
 from transformers import RobertaTokenizer
 
 from src.DataLoaders.xml import load_xml_data
@@ -24,7 +23,7 @@ from src.optimizers.adam import get_adam_opt
 from src.Tokenizers.masking_utils import get_masking_func
 
 from config import config
-from loss_eval_utils import ft_loss, get_params
+from loss_eval_utils import ft_loss, get_params, get_classification_report
 
 import wandb
 
@@ -178,7 +177,7 @@ def train(config, params, train_data_loader, key, opt_state):
             params, opt_state, batch_loss = update(opt_state, params, subkey,
                                                    thread, config)
             
-            losses.append(batch_loss)
+            losses.append(batch_loss.item())
 
             if step%(config['total_steps']//3)==0:
                 print(sum(losses)/len(losses))
@@ -186,12 +185,10 @@ def train(config, params, train_data_loader, key, opt_state):
 
             if step==config['total_steps']-1:
                 all_preds, all_labels = evaluate(config, params, valid_data_loader, key)
-                wandb.log({'Validation' : classification_report(all_labels, all_preds, labels=[0,1,2], 
-                                          target_names=['Non-Argumentative', 'Claim', 'Premise'])})
+                wandb.log({'Validation' : get_classification_report(config, all_labels, all_preds)})
     
-                evaluate(config, params, test_data_loader, key)
-                wandb.log({'Test' : classification_report(all_labels, all_preds, labels=[0,1,2], 
-                                    target_names=['Non-Argumentative', 'Claim', 'Premise'])})
+                all_preds, all_labels = evaluate(config, params, test_data_loader, key)
+                wandb.log({'Test' : get_classification_report(config, all_labels, all_preds)})
     
     return val_losses
 

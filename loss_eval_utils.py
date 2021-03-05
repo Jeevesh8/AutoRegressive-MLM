@@ -17,11 +17,11 @@ def get_params(config, key, pure_loss_fn, pure_featurizer_fn):
     token_ids, comment_ids = get_sample_inp(config)
 
     masked_token_ids = token_ids
-    masked_token_ids[np.random.randint(config['mlm_batch_size'], size=3),np.random.randint(config['mlm_batch_size'], size=3)] = 0
+    masked_token_ids[np.random.randint(config['mlm_batch_size'], size=3),np.random.randint(config['max_length'], size=3)] = 0
 
     key, subkey = jax.random.split(key)
     featurizer_params = pure_featurizer_fn.init(subkey, config, comment_ids, True)
-    comment_embds = pure_featurizer_fn.apply(featurizer_params, subkey, config, comment_ids, True)
+    comment_embds = pure_featurizer_fn.apply(featurizer_params, subkey, config, comment_ids, True)[:config['mlm_batch_size'],:]
 
     comment_embds = jnp.tile(comment_embds, config['max_length']).reshape(config['mlm_batch_size'], config['max_length'], -1)
     comment_mask = jnp.ones_like(comment_embds[:,:,0])
@@ -48,10 +48,12 @@ def remove_pad_preds(all_preds, all_labels):
     pad_removed_labels = []
     
     for i in range(len(all_preds)):
-        
-        if all_preds[i]!=-1:
-            pad_removed_labels.append(all_labels[i])
-            pad_removed_preds.append(all_preds[i])
+        pad_removed_labels.append([])
+        pad_removed_preds.append([])
+        for j in range(len(all_preds[i])):
+            if all_preds[i][j]!=-1:
+                pad_removed_labels.append(all_labels[i][j])
+                pad_removed_preds.append(all_preds[i][j])
     
     return pad_removed_preds, pad_removed_labels
 
@@ -60,8 +62,8 @@ def get_pred_list(config, labels, preds, batch):
     logits_mask = (batch!=config['pad_id'])
     preds = jnp.where(jax.device_put(logits_mask), preds, -1.)
     
-    all_preds = preds.reshape(-1).tolist()
-    all_labels = labels.reshape(-1).tolist()
+    all_preds = preds.reshape(preds.shape[0], -1).tolist()
+    all_labels = labels.reshape(labels.shape[0], -1).tolist()
 
     return remove_pad_preds(all_preds, all_labels)
 
@@ -141,3 +143,20 @@ def ft_loss(featurizer_f, loss_f, params, key, init_thread, config, turn=0, mode
         return compute_ar_accuracy(loss_f, params, subkey, config, thread, encodings, labels, turn)    
     
     return compute_ar_loss(loss_f, params, subkey, config, thread, encodings, labels, turn)
+
+def get_classification_report(config, all_labels, all_preds):
+    if config['last_layer']=='crf':
+        from seqeval.metrics import classification_report
+        for i in range(len(all_preds)):
+            for j in range(len(all_preds[i]))
+                all_preds[i][j] = config['class_names'][all_preds[i][j]]
+                all_labels[i][j] = config['class_names'][all_labels[i][j]]
+        return classification_report(all_labels, all_preds)
+    
+    else:
+        from sklearn.metrics import classification_report
+        joined_labels, joined_preds = [], []
+        for i in range(len(all_preds)):
+            joined_labels+=all_labels
+            joined_preds+=joined_preds
+        return classification_report(joined_labels, joined_preds)
