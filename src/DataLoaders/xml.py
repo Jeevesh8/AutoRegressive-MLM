@@ -5,6 +5,7 @@ class load_xml_data:
     def __init__(self, config, split='train/'):
         self.config = config
         self.split = split
+        self.class_to_id = {self.config['class_names'][i] : i for i in range(len(self.config['class_names']))}
 
     def clean_text(self, text):
 
@@ -25,7 +26,7 @@ class load_xml_data:
         Each file that is loaded is returned as 
         a string of all the xml data inside it.
         """
-        for fol in self.config['data_folders']:
+        for fol in self.config['ft_data_folders']:
             folder = os.path.join(fol, self.split)
             for f in os.listdir(folder):
                 filename = os.path.join(folder, f)

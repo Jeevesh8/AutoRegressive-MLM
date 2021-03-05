@@ -23,7 +23,7 @@ config = {
           'd_model' : 128,                                                      #same as hidden_size
           'max_losses' : 10,                                                    #max. number of losses to backpropagate at once
           'max_tree_size' : 60,
-          'max_labelled_users_per_tree':8,
+          'max_labelled_users_per_tree':10,
           'last_layer' : '',                                                    #Specify(Linear/GRU) when pre_training=False.
 
           #Embeddings Parameters
@@ -96,7 +96,7 @@ config = {
 '''
 config = {
           'pre_training' : False,
-          'initialize_pretrained' : '',
+          'initialize_pretrained' : 'distilroberta-base',
           'params_file' : <path-to-pretrained-wts-file>,                        #Path to parameters obtained from pre-training.
 
           #Data Parameters
@@ -106,6 +106,7 @@ config = {
           'mlm_batch_size' : 4,
           'n_epochs' : 10,
           
+          'data_folders' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/'],
           ## Folders containing fine-tuning data. Each of these must have train/, test/, valid/, subfolders.
           'ft_data_folders' : [ '/content/drive/MyDrive/2SCL/Argumentation/finetune-data/change-my-view-modes/v2.0/negative/', 
                                 '/content/drive/MyDrive/2SCL/Argumentation/finetune-data/change-my-view-modes/v2.0/positive/'],
@@ -114,17 +115,18 @@ config = {
           'params_dir' : '/content/drive/MyDrive/2SCL/Argumentation/',          #Directory to read from/write to params 
 
           #Model Parameters
-          'intermediate_size' : 3072,
+          'intermediate_size' : 768*4,
           'n_heads' : 12,
           'n_layers' : 6,
           'hidden_size' : 768,
           'd_model' : 768,                                                      #same as hidden_size
-          'max_losses' : 2,                                                     #max. number of losses to backpropagate at once
-          'max_tree_size' : 20,
-          'max_labelled_users_per_tree':8,
+          'max_losses' : 5,                                                     #max. number of losses to backpropagate at once
+          'max_tree_size' : 10,
+          'max_labelled_users_per_tree':10,
           'n_classes' : 3,                                                      #Number of classes for argument classification.
           'class_names':['Non-Argumentative', 'Claim', 'Premise'],
           'last_layer' : 'GRU',                                                 #Specify(Linear/GRU) when pre_training=False.
+          'classifier_drop_rate' : 0.1,
 
           #Embeddings Parameters
           'embed_dropout_rate' : 0.1,
@@ -152,7 +154,7 @@ config = {
 '''
 config = {
           'pre_training' : False,
-          'initialize_pretrained' : '',
+          'initialize_pretrained' : 'distilroberta-base',
           'params_file' : <path-to-pretrained-wts-file>,                        #Path to parameters obtained from pre-training.
 
           #Data Parameters
@@ -162,25 +164,26 @@ config = {
           'mlm_batch_size' : 4,
           'n_epochs' : 10,
           
+          'data_folders' : ['/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/'],
           ## Folders containing fine-tuning data. Each of these must have train/, test/, valid/, subfolders.
-          'ft_data_folders' : [ '/content/drive/MyDrive/2SCL/Argumentation/finetune-data/change-my-view-modes/v2.0/negative/', 
-                                '/content/drive/MyDrive/2SCL/Argumentation/finetune-data/change-my-view-modes/v2.0/positive/'],
+          'ft_data_folders' : ['/content/change-my-view-modes/v2.0/data/'],
 
           'discourse_markers_file' : '/content/drive/MyDrive/2SCL/Argumentation/first_batch_data/Discourse_Markers.txt',
           'params_dir' : '/content/drive/MyDrive/2SCL/Argumentation/',          #Directory to read from/write to params 
 
           #Model Parameters
-          'intermediate_size' : 3072,
+          'intermediate_size' : 768*4,
           'n_heads' : 12,
           'n_layers' : 6,
           'hidden_size' : 768,
           'd_model' : 768,                                                      #same as hidden_size
-          'max_losses' : 2,                                                     #max. number of losses to backpropagate at once
-          'max_tree_size' : 20,
-          'max_labelled_users_per_tree':8,
+          'max_losses' : 5,                                                     #max. number of losses to backpropagate at once
+          'max_tree_size' : 10,
+          'max_labelled_users_per_tree':10,
           'n_classes' : 5,                                                      #Number of classes for argument classification.
-          'class_names':['Non-Argumentative', 'B-Claim', 'B-Premise', 'I-Claim', 'I-premise'],
+          'class_names': ['Non-Argumentative', 'B-Claim', 'B-Premise', 'I-Claim', 'I-premise'],
           'last_layer' : 'crf',                                                 #Specify(Linear/GRU/crf) when pre_training=False.
+          'classifier_drop_rate' : 0.1,
 
           #Embeddings Parameters
           'embed_dropout_rate' : 0.1,

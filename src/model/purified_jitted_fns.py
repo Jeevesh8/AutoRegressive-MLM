@@ -1,9 +1,12 @@
 #Simple functions to transform
-def get_fn_to_transform(module, config, training=True):
+import jax
+from functools import partial
 
-    def fn_to_transform(*args, **kwargs):
+def get_fn_to_transform(module, training=True):
+
+    def fn_to_transform(config, *args, **kwargs):
         return module(config)(*args, **kwargs)
-    def pred_fn_to_transform(*args, **kwargs):
+    def pred_fn_to_transform(config, *args, **kwargs):
         return module(config).predict(*args, **kwargs)
     if not training:
         return pred_fn_to_transform    
@@ -13,7 +16,7 @@ def get_jittable_fn(transformed_fn):
     
     def pure_featurizer(training, config, params, key, *args):
         key, subkey = jax.random.split(key)
-        comment_embds = transformed_fn.apply(params, subkey, *args, training=training, config=config)
+        comment_embds = transformed_fn.apply(params, subkey, config,  *args, training=training)
         return comment_embds
     
     return pure_featurizer

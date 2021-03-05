@@ -4,10 +4,10 @@ import jax.numpy as jnp
 import haiku as hk
 import gin
 
-from transformer import TransformerBlock, TransformerDecoderBlock
-from embeddings import Embedding
+from src.model.transformer import TransformerBlock, TransformerDecoderBlock
+from src.model.embeddings import Embedding
 
-from misc import crf_layer, GRU, Linear
+from src.model.misc import crf_layer, GRU, Linear
 
 @gin.configurable
 class TransformerFeaturizer(hk.Module):
@@ -24,9 +24,9 @@ class TransformerFeaturizer(hk.Module):
         return (jnp.bitwise_or(token_ids==self.config['pad_id'], 
                                token_ids==self.config['mask_id'])).astype(jnp.float32)
     
-    def __call__(self, token_ids, lang_ids=None, training=False, is_autoregressive=False):
+    def __call__(self, token_ids, training=False, is_autoregressive=False):
         
-        x = Embedding(self.config)(token_ids, lang_ids=lang_ids, training=training)
+        x = Embedding(self.config)(token_ids, lang_ids=None, training=training)
         
         mask = self.get_mask(token_ids)
 
@@ -186,8 +186,9 @@ class FineTuningExtendedEncoder(BaseExtendedEncoder):
             self.last_layer = Linear(output_size=config['n_classes'])
         
         elif config['last_layer']=='crf':
-            transition_init = hk.initializers.constant(jnp.array(config['transition_init']))
+            transition_init = hk.initializers.Constant(jnp.array(config['transition_init']))
          
+            self.lin = hk.Linear(config['n_classes'])
             self.last_layer = crf_layer(n_classes=config['n_classes'],
                                      transition_init=transition_init,)
         else:
@@ -196,50 +197,54 @@ class FineTuningExtendedEncoder(BaseExtendedEncoder):
     def __call__(self, comment_embds, comments_mask, token_ids, training=False):
         """
         Computes features using ExtendedEncoder and computes 
-        further logits, iff the last_layer is linear or gru.
+        further logits.
         """
-        y = super().__call__(comment_embds, comments_mask, token_ids, training=training)
+        embds = super().__call__(comment_embds, comments_mask, token_ids, training=training)
         
         if training:
-            new_embds = hk.dropout(rng=hk.next_rng_key(),
-                                   rate=self.config['classifier_drop_rate'],
-                                   x=y)
+            embds = hk.dropout(rng=hk.next_rng_key(),
+                                rate=self.config['classifier_drop_rate'],
+                                x=embds)
         
         if self.config['last_layer']=='crf':
-            return new_embds
+            return self.lin(embds)
             
-        return self.last_layer(new_embds)
+        return self.last_layer(embds)
     
     def __call__(self, comment_embds, comments_mask, token_ids, labels, training=False):
         """
         Returns the loss using the predictions from the logits predicted inside last_layer.
         """
-        y = super().__call__(comment_embds, comments_mask, token_ids, training=training)
+        embds = super().__call__(comment_embds, comments_mask, token_ids, training=training)
         
         if training:
-            new_embds = hk.dropout(rng=hk.next_rng_key(),
-                                   rate=self.config['classifier_drop_rate'],
-                                   x=y)
+            embds = hk.dropout(rng=hk.next_rng_key(),
+                               rate=self.config['classifier_drop_rate'],
+                               x=embds)
+        
+        if self.config['last_layer']=='crf':
+            embds = self.lin(embds)
         
         lengths = jnp.sum((token_ids!=self.config['pad_id']), axis=-1)
 
-        return self.last_layer(new_embds, lengths, labels)
+        return self.last_layer(embds, lengths, labels)
     
     def predict(self, comment_embds, comments_mask, token_ids, training=False):
         """
         Predicts the most likely sequence of taggings for the input sequence 
         provided via the token_ids argument. 
         """
-        y = super().__call__(comment_embds, comments_mask, token_ids, training=training)
+        embds = super().__call__(comment_embds, comments_mask, token_ids, training=training)
         
         if training:
-            new_embds = hk.dropout(rng=hk.next_rng_key(),
-                                   rate=self.config['classifier_drop_rate'],
-                                   x=y)
+            embds = hk.dropout(rng=hk.next_rng_key(),
+                               rate=self.config['classifier_drop_rate'],
+                               x=embds)
         
         if self.config['last_layer']=='crf':
+            embds = self.lin(embds)
             lengths = jnp.sum((token_ids!=self.config['pad_id']), axis=-1)
-            return self.last_layer.batch_viterbi_decode(new_embds, lengths)        
+            return self.last_layer.batch_viterbi_decode(embds, lengths)[0]        
         
         else:
-            return jnp.argmax(self.last_layer(new_embds), axis=-1)
+            return jnp.argmax(self.last_layer(embds), axis=-1)

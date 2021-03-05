@@ -6,7 +6,6 @@ import jax
 from jax.scipy.special import logsumexp
 import jax.lax as lax
 
-@gin.configurable
 class crf_layer(hk.Module):
 
     def __init__(self, 
@@ -184,7 +183,7 @@ class crf_layer(hk.Module):
         scores, tags = batch_decode_fn(batch_logits)
         
         tag_sequences = [jnp.array([-1]*scores.shape[0])]
-        batch_scores = jnp.arary([-1]*scores.shape[0])
+        batch_scores = jnp.array([-1]*scores.shape[0])
         
         for i in range(scores.shape[1], 0, -1):
             
@@ -192,7 +191,8 @@ class crf_layer(hk.Module):
             tag_sequences.append( jnp.diag(jnp.where(i<lengths, tags[:,i,tag_sequences[-1]], last_tag)) )
             batch_scores = jnp.where(i==lengths, jnp.max(scores[:,i,:], axis=1), batch_scores)
         
-        return jnp.stack(reverse(tag_sequences), axis=1), batch_scores
+        tag_sequences.reverse()
+        return jnp.stack(tag_sequences, axis=1), batch_scores
     
     def __call__(self,
                  batch_logits: jnp.ndarray,

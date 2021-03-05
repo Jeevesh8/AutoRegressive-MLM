@@ -20,17 +20,17 @@ def get_params(config, key, pure_loss_fn, pure_featurizer_fn):
     masked_token_ids[np.random.randint(config['mlm_batch_size'], size=3),np.random.randint(config['mlm_batch_size'], size=3)] = 0
 
     key, subkey = jax.random.split(key)
-    featurizer_params = pure_featurizer_fn.init(subkey, comment_ids, True, config)
-    comment_embds = pure_featurizer_fn.apply(featurizer_params, subkey, comment_ids, True, config)
+    featurizer_params = pure_featurizer_fn.init(subkey, config, comment_ids, True)
+    comment_embds = pure_featurizer_fn.apply(featurizer_params, subkey, config, comment_ids, True)
 
     comment_embds = jnp.tile(comment_embds, config['max_length']).reshape(config['mlm_batch_size'], config['max_length'], -1)
     comment_mask = jnp.ones_like(comment_embds[:,:,0])
     
     key, subkey = jax.random.split(key)
     
-    ExtendedEncoder_params = pure_loss_fn.init(subkey, comment_embds, 
-                                               comment_mask, masked_token_ids, token_ids,
-                                               True, config)
+    ExtendedEncoder_params = pure_loss_fn.init(subkey, config, comment_embds, 
+                                               comment_mask, masked_token_ids, 
+                                               token_ids, True)
     
     return featurizer_params, ExtendedEncoder_params
 
@@ -58,7 +58,7 @@ def remove_pad_preds(all_preds, all_labels):
 def get_pred_list(config, labels, preds, batch):
 
     logits_mask = (batch!=config['pad_id'])
-    preds = jnp.where(logits_mask, preds, -1)
+    preds = jnp.where(jax.device_put(logits_mask), preds, -1.)
     
     all_preds = preds.reshape(-1).tolist()
     all_labels = labels.reshape(-1).tolist()
@@ -85,7 +85,7 @@ def get_decoder_batches(config, thread, encodings, labels):
     return zip(batches, parent_encodings, parent_mask_lis, label_batches)
 
 """## Loss for FineTuning"""
-def compute_ar_loss(loss_f, params, key, config, thread, encodings, labels):
+def compute_ar_loss(loss_f, params, key, config, thread, encodings, labels, turn):
     loss = 0.0
 
     for i, (batch, parent_batch, parent_mask, labels) in enumerate( get_decoder_batches(config, thread, encodings, labels) ):
@@ -100,7 +100,7 @@ def compute_ar_loss(loss_f, params, key, config, thread, encodings, labels):
           
     return (loss, False)
 
-def compute_ar_accuracy(pred_f, params, key, config, thread, encodings, labels, turn)        
+def compute_ar_accuracy(pred_f, params, key, config, thread, encodings, labels, turn):        
     all_preds = []
     all_labels = []
     

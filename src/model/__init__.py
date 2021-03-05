@@ -1,6 +1,7 @@
 import gin
 
 from src.model.transformer import *
+from src.model.transformers import *
 from src.model.embeddings import *
 from src.model.utils import *
 

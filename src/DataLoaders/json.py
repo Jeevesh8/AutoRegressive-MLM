@@ -1,5 +1,6 @@
 import jsonlist
 import re, os
+from typing import List
 
 class load_reddit_data:
     

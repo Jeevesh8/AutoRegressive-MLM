@@ -32,7 +32,7 @@ def copy_corres_key(dic2, key2, dic1, key1, allow_transpose):
                 dic2[key2] = np.transpose(dic1[key1])
             else:
                 raise ValueError("Shape mismatch b/w pretrained and initialized weights. Can't load key : ", key1, 
-                                "from initialized wts into the key : ", key2, "of initialized wts.")
+                                "of shape ", dic1[key1].shape, "from initialized wts into the key : ", key2, "of shape ", dic2[key2].shape, " of initialized wts.")
         else:
             dic2[key2] = dic1[key1]
     
@@ -42,7 +42,7 @@ def copy_corres_key(dic2, key2, dic1, key1, allow_transpose):
     else:
         copy_fn(dic2, key2, dic1, key1)
     
-def copy_available_keys(dic1, dic2, special_pairs: List[Tuple[str, Tuple[str,str]]]=None, allow_transpose=True):
+def copy_available_keys(dic1, dic2, special_pairs: List[Tuple[str, Tuple[str,str]]]=[], allow_transpose=True):
     """
     Updates the value of any key of dic2 to its corresponding value in dic1, 
     if the key exists in dic1. Else dic2[key] remains unchanged.

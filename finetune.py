@@ -4,11 +4,12 @@ import copy
 import numpy as np
 from functools import partial
 from copy import deepcopy
+import pickle
 
 import jax
 import jax.numpy as jnp
 import haiku as hk
-from haiku.data_structures import to_immutable_dict
+from haiku.data_structures import to_immutable_dict, to_mutable_dict
 import optax
 from sklearn.metrics import classification_report
 from transformers import RobertaTokenizer
@@ -30,7 +31,7 @@ import wandb
 def load_pretrained_tokenizer():
     """Loads Pre-Trained Tokenizers if config['initialize_pretrained'] is specified, into the global config"""
 
-    if 'iniitialize_pretrained' in config and config['initialize_pretrained']!='':
+    if 'initialize_pretrained' in config and config['initialize_pretrained']!='':
 
         huggingface_tokenizer = RobertaTokenizer.from_pretrained(config['initialize_pretrained'])
 
@@ -53,7 +54,6 @@ def train_tokenizer(data_loader):
         lm_tokeniser = Thread_Tokenizer(config)
         lm_tokeniser.train_tokenizer(str_iter=data_loader.get_sentences())
 
-    """## Or Load Pre-Trained Tokenizer"""
     else: 
         #Will automatically load pre-trained version if config['pt_hf_tokenizer'] is defined.
         lm_tokeniser = Thread_Tokenizer(config)
@@ -78,9 +78,9 @@ def update_config(config, train_data_loader):
 def load_pretrained_wts(featurizer_params, ExtendedEncoder_params):
     """Merging pre-trained and initialised parameters"""
     
-    if config['param_file']!='':
+    if config['params_file']!='':
         
-        with open(config['param_file'], 'rb') as f:
+        with open(config['params_file'], 'rb') as f:
             pt_wts = pickle.load(f)
 
         featurizer_params = to_mutable_dict(featurizer_params)
@@ -98,6 +98,20 @@ def load_pretrained_wts(featurizer_params, ExtendedEncoder_params):
     params = to_immutable_dict( {'comments_encoder' : featurizer_params, 
                                 'ar_classifier' : ExtendedEncoder_params } )
     return params
+
+def jit_fns(pure_featurizer_fn, pure_loss_fn, pure_pred_fn):
+    
+    global featurizer_f, loss_f, eval_featurizer_f, eval_pred_f, loss, accuracy 
+    
+    featurizer_f = get_pure_jitted_fn(pure_featurizer_fn, True, config)
+    loss_f = get_pure_jitted_fn(pure_loss_fn, True, config)
+    
+    loss = partial(ft_loss, featurizer_f, loss_f, mode='loss')
+    
+    eval_featurizer_f = get_pure_jitted_fn(pure_featurizer_fn, False, config)
+    eval_pred_f = get_pure_jitted_fn(pure_pred_fn, False, config)
+
+    accuracy = partial(ft_loss, eval_featurizer_f, eval_pred_f, mode='accuracy')
 
 def update(opt_state, params, key, thread, config):
     turn = 0
@@ -129,7 +143,7 @@ def thread_accuracy(params, key, thread, config):
 
     return all_preds, all_labels
 
-def evaluate(config, params, data_loader, lm_tokeniser, key):
+def evaluate(config, params, data_loader, key):
     all_preds = []
     all_labels = []
 
@@ -181,6 +195,7 @@ def train(config, params, train_data_loader, key, opt_state):
     
     return val_losses
 
+    
 if __name__=='__main__' :
     
     global lm_tokenizer, featurizer_f, loss_f, mask_batch_mlm, eval_featurizer_f, eval_pred_f, loss, accuracy, opt
@@ -197,24 +212,18 @@ if __name__=='__main__' :
 
     config = hk.data_structures.to_immutable_dict(config)
 
-    pure_featurizer_fn = hk.transform( get_fn_to_transform(TransformerFeaturizer, config) )
-    pure_loss_fn = hk.transform( get_fn_to_transform(FineTuningExtendedEncoder, config) )
+    pure_featurizer_fn = hk.transform( get_fn_to_transform(TransformerFeaturizer) )
+    pure_loss_fn = hk.transform( get_fn_to_transform(FineTuningExtendedEncoder) )
+    pure_pred_fn = hk.transform( get_fn_to_transform(FineTuningExtendedEncoder, training=False) )
 
+    key, subkey = jax.random.split( jax.random.PRNGKey(42) )
     featurizer_params, ExtendedEncoder_params = get_params(config, key, pure_loss_fn, pure_featurizer_fn)
     params = load_pretrained_wts(featurizer_params, ExtendedEncoder_params)
 
-    featurizer_f = get_pure_jitted_fn(pure_featurizer_fn, True, config)
-    loss_f = get_pure_jitted_fn(pure_loss_fn, True, config)
-    
-    loss = partial(ft_loss, featurizer_f, loss_f, mode='loss')
     mask_batch_mlm = get_masking_func(config)
+
+    jit_fns(pure_featurizer_fn, pure_loss_fn, pure_pred_fn)
     
-    pure_pred_fn = hk.transform( get_fn_to_transform(FineTuningExtendedEncoder, config, training=False) )
-    eval_featurizer_f = get_pure_jitted_fn(pure_featurizer_fn, False, config)
-    eval_pred_f = get_pure_jitted_fn(pure_pred_fn, False, config)
-
-    accuracy = partial(ft_loss, eval_featurizer_f, eval_pred_f, mode='accuracy')
-
     lrs = [1e-3]
     drs = [0.1]
     valid_epoch_losses = []
@@ -230,9 +239,11 @@ if __name__=='__main__' :
             opt = get_adam_opt(config)
             opt_state = opt.init(params)
             
+            jit_fns(pure_featurizer_fn, pure_loss_fn, pure_pred_fn)
+
             init_params = copy.deepcopy(params)
 
-            val_losses = train(config, init_params, train_data_loader, key, opt_state, lm_tokeniser)
+            val_losses = train(config, init_params, train_data_loader, key, opt_state)
             
             valid_epoch_losses.append( val_losses )
             

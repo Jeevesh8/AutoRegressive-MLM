@@ -185,11 +185,8 @@ if __name__=='__main__':
     wandb.init(project='autoregressive-mlm', config=config)
     config = hk.data_structures.to_immutable_dict(config)
 
-    featurizer = get_fn_to_transform(TransformerFeaturizer, config)
-    loss_fn = get_fn_to_transform(ExtendedEncoder, config)
-
-    pure_featurizer_fn = hk.transform(featurizer)
-    pure_loss_fn = hk.transform(loss_fn)
+    pure_featurizer_fn = hk.transform( get_fn_to_transform(TransformerFeaturizer, config) )
+    pure_loss_fn = hk.transform( get_fn_to_transform(ExtendedEncoder, config) )
 
     featurizer_f = get_pure_jitted_fn(pure_featurizer_fn, True, config)
     loss_f = get_pure_jitted_fn(pure_loss_fn, True, config)
