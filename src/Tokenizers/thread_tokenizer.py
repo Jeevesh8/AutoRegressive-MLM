@@ -7,6 +7,8 @@ class Thread_Tokenizer(Base_Tokenizer):
 
     def __init__(self, config):
         super().__init__(config)
+        self.config = config
+        self.class_to_id = {self.config['class_names'][i] : i for i in range(len(self.config['class_names']))}
 
     def set_up_tokenizer(self):
         
@@ -24,8 +26,13 @@ class Thread_Tokenizer(Base_Tokenizer):
 
         for part, typ in zip(parts, type_ids):
             tokenized_str+=part
-            tokenwise_type_ids+=[typ]*len(part)
-
+            if typ==0:
+                tokenwise_type_ids+=[self.class_to_id['Non-Argumentative']]*len(part)
+            if typ==1:
+                tokenwise_type_ids+=([self.class_to_id['B-Claim']]+[self.class_to_id['I-Claim']]*(len(part)-1)
+            if typ==2:
+                tokenwise_type_ids+=([self.class_to_id['B-Premise']]+[self.class_to_id['I-Premise']]*(len(part)-1)
+        
         if len(tokenized_str)<self.config['max_length']:
             tokenized_str+=[self.config['pad_id']]*(self.config['max_length']-len(tokenized_str))
             tokenwise_type_ids+=[-1]*(self.config['max_length']-len(tokenwise_type_ids))

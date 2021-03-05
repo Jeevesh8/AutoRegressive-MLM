@@ -5,7 +5,6 @@ class load_xml_data:
     def __init__(self, config, split='train/'):
         self.config = config
         self.split = split
-        self.class_to_id = {self.config['class_names'][i] : i for i in range(len(self.config['class_names']))}
 
     def clean_text(self, text):
 
