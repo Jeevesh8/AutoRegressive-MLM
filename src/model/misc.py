@@ -192,7 +192,7 @@ class crf_layer(hk.Module):
             batch_scores = jnp.where(i==lengths, jnp.max(scores[:,i,:], axis=1), batch_scores)
         
         tag_sequences.reverse()
-        return jnp.stack(tag_sequences, axis=1), batch_scores
+        return jnp.stack(tag_sequences[:-1], axis=1), batch_scores
     
     def __call__(self,
                  batch_logits: jnp.ndarray,
