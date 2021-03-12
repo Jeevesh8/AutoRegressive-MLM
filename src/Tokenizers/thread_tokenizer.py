@@ -27,7 +27,7 @@ class Thread_Tokenizer(Base_Tokenizer):
         for part, typ in zip(parts, type_ids):
             tokenized_str+=part
             if typ==0:
-                tokenwise_type_ids+=[self.class_to_id['Non-Argumentative']]*len(part)
+                tokenwise_type_ids+=[self.class_to_id['O']]*len(part)
             if typ==1:
                 tokenwise_type_ids+=([self.class_to_id['B-Claim']]+[self.class_to_id['I-Claim']]*(len(part)-1))
             if typ==2:

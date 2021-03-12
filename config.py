@@ -181,7 +181,7 @@ config = {
           'max_tree_size' : 10,
           'max_labelled_users_per_tree':10,
           'n_classes' : 5,                                                      #Number of classes for argument classification.
-          'class_names': ['Non-Argumentative', 'B-Claim', 'B-Premise', 'I-Claim', 'I-Premise'], #Can only flip these around, if you change names, kindly modify the thread_tokenizer as well.
+          'class_names': ['O', 'B-Claim', 'B-Premise', 'I-Claim', 'I-Premise'], #Can only flip these around, if you change names, kindly modify the thread_tokenizer as well.
           'last_layer' : 'crf',                                                 #Specify(Linear/GRU/crf) when pre_training=False.
           'classifier_drop_rate' : 0.1,
 
