@@ -151,7 +151,7 @@ def get_classification_report(config, all_labels, all_preds):
             for j in range(len(all_preds[i])):
                 all_preds[i][j] = config['class_names'][int(all_preds[i][j])]
                 all_labels[i][j] = config['class_names'][int(all_labels[i][j])]
-        return classification_report(all_labels, all_preds)
+        return classification_report(all_labels, all_preds, output_dict=True)
     
     else:
         from sklearn.metrics import classification_report
