@@ -37,8 +37,8 @@ class Thread_Tokenizer(Base_Tokenizer):
             tokenized_str+=[self.config['pad_id']]*(self.config['max_length']-len(tokenized_str))
             tokenwise_type_ids+=[-1]*(self.config['max_length']-len(tokenwise_type_ids))
 
-        tokens = np.asarray(tokenized_str[:self.config['max_length']], dtype=np.int16)
-        types =  np.asarray(tokenwise_type_ids[:self.config['max_length']], dtype=np.int16)
+        tokens = np.asarray(tokenized_str[:self.config['max_length']], dtype=np.int32)
+        types =  np.asarray(tokenwise_type_ids[:self.config['max_length']], dtype=np.int32)
 
         return tokens, types
 

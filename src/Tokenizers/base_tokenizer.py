@@ -1,6 +1,6 @@
 from tokenizers import Tokenizer
 from tokenizers.models import BPE
-from tokenizers.pre_tokenizers import Whitespace
+from tokenizers.pre_tokenizers import Metaspace
 from tokenizers.trainers import BpeTrainer
 import jax.numpy as jnp
 import json
@@ -9,7 +9,7 @@ class Base_Tokenizer:
     
     def __init__(self, config):
         self.tokenizer = Tokenizer(BPE())
-        self.tokenizer.pre_tokenizer = Whitespace()
+        self.tokenizer.pre_tokenizer = Metaspace('Ġ', False)
         self.dms = self.get_discourse_markers(config)
         self.config = config
         
@@ -17,7 +17,7 @@ class Base_Tokenizer:
             self.load_from_pretrained()
         else:
             self.trainer = BpeTrainer(special_tokens=['<s>', '</s>', '<unk>', '<pad>', '<mask>', '<url>', '<startq>', '<endq>']
-                                                      +[f'<author_{i}>' for i in range(self.config['max_labelled_users_per_tree'])]
+                                                      +[f'<user_{i}>' for i in range(self.config['max_labelled_users_per_tree'])]
                                                       +['<unu>']+self.dms)
 
     def load_from_pretrained(self):
@@ -25,6 +25,7 @@ class Base_Tokenizer:
         with open('./final_tokensier.json', 'w+') as f:
             json.dump(json_tok, f)
         self.tokenizer = Tokenizer.from_file('./final_tokensier.json')
+        self.tokenizer.add_special_tokens(self.extra_tokens)
         self.set_up_tokenizer()
     
     def save_and_modify(self):
@@ -37,6 +38,7 @@ class Base_Tokenizer:
         roberta_vocab, roberta_merges = self.get_vocab_merges()
         json_tok['model']['vocab'] = roberta_vocab
         json_tok['model']['merges'] = roberta_merges
+        json_tok['model']['unk_token'] = self.config['pt_hf_tokenizer'].unk_token
         return json_tok
     
     def get_vocab_merges(self):
@@ -49,7 +51,7 @@ class Base_Tokenizer:
             roberta_merges = f.readlines()[1:]
             roberta_merges = [merge.rstrip('\n') for merge in roberta_merges]
         
-        roberta_vocab = self.add_tokens(roberta_vocab)
+        self.add_tokens(roberta_vocab)
 
         return roberta_vocab, roberta_merges
     
@@ -64,11 +66,9 @@ class Base_Tokenizer:
     
     def add_tokens(self, vocab):
         self.extra_tokens = ['<url>', '<startq>', '<endq>']+self.get_missing_dms(vocab)       #Tokens to add to vocab of pre-trained HuggingFace model
-        self.extra_tokens += ([f'<author_{i}>' for i in range(self.config['max_labelled_users_per_tree'])]+['<unu>'])
-        for word in self.extra_tokens:
-            vocab[word] = len(vocab)
+        self.extra_tokens += ([f'<user_{i}>' for i in range(self.config['max_labelled_users_per_tree'])]+['<unu>'])
+        self.extra_tokens += [v for (k,v) in self.config['pt_hf_tokenizer'].special_tokens_map.items()]
         self.config['extra_tokens'] = self.extra_tokens
-        return vocab
 
     def train_tokenizer(self, data_files=None, binary_iterator=None, str_iter=None):
         

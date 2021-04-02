@@ -48,7 +48,7 @@ class load_xml_data:
 
         for elem in post:
 
-            s = self.clean_text( str(elem) )
+            s = self.clean_text( self.refine_xml(str(elem)) )
             if s=='':
                 continue
             if s.startswith('<claim>'):
@@ -66,7 +66,6 @@ class load_xml_data:
     def thread_generator(self):
         for xml_string in self.file_loader():
             thread, authors, i = [], {}, 0
-            xml_string = self.refine_xml(xml_string)
             parsed_xml = BeautifulSoup(xml_string, "xml")
             
             for elem in parsed_xml.find_all('reply')+[parsed_xml.find('OP')]:
@@ -74,7 +73,7 @@ class load_xml_data:
                 if len(thread)==self.config['max_tree_size']:
                     break
                 
-                if 'author' not in elem:
+                if not elem.has_attr('author'):
                     thread[-1][0][0] = '<unu> '+thread[-1][0][0]
                     continue
 

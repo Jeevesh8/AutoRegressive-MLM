@@ -101,7 +101,7 @@ def embed_batches(params, key, config, batches):
 
 def compute_ar_loss(params, key, config, tree, batches, comment_batches, turn):
     loss = 0.0
-    empty_elem = jnp.asarray([0]*config['d_model'], dtype=jnp.int16)    
+    empty_elem = jnp.asarray([0]*config['d_model'], dtype=jnp.int32)    
     
     for i, (original_batch, comment_batch) in enumerate( zip(batches, comment_batches) ):
         
@@ -131,7 +131,7 @@ def loss(params, key, init_tree, config, turn=0):
     """
     tree = deepcopy(init_tree)
 
-    empty_elem = jnp.asarray([config['pad_id']]*config['max_length'], dtype=jnp.int16)
+    empty_elem = jnp.asarray([config['pad_id']]*config['max_length'], dtype=jnp.int32)
     batches = tree_to_batch(tree, config['featurizer_batch_size'],
                             key='tokenized_inputs', empty_elem=empty_elem)
     

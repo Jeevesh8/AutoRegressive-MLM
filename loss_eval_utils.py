@@ -68,7 +68,7 @@ def get_pred_list(config, labels, preds, batch):
     return remove_pad_preds(all_preds, all_labels)
 
 def get_encoder_batches(config, thread):
-    empty_elem = jnp.asarray([config['pad_id']]*config['max_length'], dtype=jnp.int16)
+    empty_elem = jnp.asarray([config['pad_id']]*config['max_length'], dtype=jnp.int32)
     return get_batched_version(thread, config['featurizer_batch_size'], empty_elem)
 
 def get_decoder_batches(config, thread, encodings, labels):
@@ -77,7 +77,7 @@ def get_decoder_batches(config, thread, encodings, labels):
     parent_encodings = [jnp.stack( encodings[:i]+[ jnp.zeros_like(encodings[0]) ]*(config['max_length']-i) ) 
                         for i in range(min(len(encodings), config['max_length']))]
     
-    parent_mask_lis = [jnp.asarray( [0]*i +[1]*(config['max_length']-i) , dtype=jnp.int16) 
+    parent_mask_lis = [jnp.asarray( [0]*i +[1]*(config['max_length']-i) , dtype=jnp.int32) 
                         for i in range(min(len(encodings), config['max_length']))]
     
     parent_encodings = get_batched_version(parent_encodings, config['featurizer_batch_size'], parent_encodings[0])

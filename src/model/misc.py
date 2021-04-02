@@ -13,6 +13,7 @@ class crf_layer(hk.Module):
                  transition_init: Optional[hk.initializers.Initializer] = jnp.ones,
                  scale_factors: Optional[List[float]] = None,
                  init_alphas: Optional[List[float]] = None,
+                 ce_loss: Optional[bool] = True,
                  name: Optional[str] = None):
         """Constructs a simple CRF layer.
 
@@ -34,7 +35,9 @@ class crf_layer(hk.Module):
         if scale_factors is None:
             scale_factors = [1.0]*n_classes
         self.scale_factors = jnp.expand_dims(jnp.asarray(scale_factors), 1)
-
+        
+        self.ce_loss = ce_loss
+    
     def core_recursion(self, fn: Callable,
                        transition_matrix: jnp.ndarray,
                        prev_alphas: jnp.ndarray, 
@@ -68,7 +71,7 @@ class crf_layer(hk.Module):
         
         Returns:
             A tensor of size [T,] where the entry at i-th index contains the sum of 
-            scores of all sequences of length (i+1).
+            scores of all sequences of length (i+2).
         """
         scan_fn = lambda prev_alphas, logit_t: (self.core_recursion(logsumexp, transition_matrix, prev_alphas, logit_t),)*2
         alphas = lax.scan(scan_fn, init=self.init_alphas+logits[0,:], xs=logits[1:])
@@ -86,7 +89,7 @@ class crf_layer(hk.Module):
             tags: The tags(class label) at each position. A matrix of size [T,]
         
         Returns:
-            A tensor of size [T,] where the i-th entry contains the score of sequence of the first (i+1) tags.
+            A tensor of size [T,] where the i-th index contains the score of sequence of the first (i+2) tags.
         """
         first_tag_score = self.init_alphas[tags[0]]+logits[0, tags[0]]
         scan_fn = lambda prev_score, i: (prev_score + transition_matrix[tags[i+1]][tags[i]] + logits[i+1, tags[i+1]],)*2
@@ -144,7 +147,7 @@ class crf_layer(hk.Module):
         
         sum_scores = batch_score_fn(batch_logits)
 
-        return jnp.diag(sum_scores[:,lengths-1])
+        return jnp.diag(sum_scores[:,lengths-2])
     
     def batched_score_sequence(self,
                                batch_logits: jnp.ndarray,
@@ -166,7 +169,7 @@ class crf_layer(hk.Module):
                                       in_axes=(0,0), out_axes=0)
 
         seq_scores = batch_seq_score_fn(batch_logits, batch_tags)
-        return jnp.diag(seq_scores[:,lengths-1])
+        return jnp.diag(seq_scores[:,lengths-2])
     
     def batch_viterbi_decode(self,
                              batch_logits: jnp.ndarray,
@@ -194,15 +197,33 @@ class crf_layer(hk.Module):
         tag_sequences = [jnp.array([-1]*scores.shape[0])]
         batch_scores = jnp.array([-1]*scores.shape[0])
         
-        for i in range(scores.shape[1], 0, -1):
+        for i in range(scores.shape[1]-1, -1, -1):
             
-            last_tag = jnp.where(i==lengths, jnp.argmax(scores[:,i,:], axis=1), -1)
-            tag_sequences.append( jnp.diag(jnp.where(i<lengths, tags[:,i,tag_sequences[-1]], last_tag)) )
-            batch_scores = jnp.where(i==lengths, jnp.max(scores[:,i,:], axis=1), batch_scores)
+            last_tag = jnp.where(i+1==lengths, jnp.argmax(scores[:,i,:], axis=1), -1)
+            tag_sequences.append( jnp.diag(jnp.where(i+1<lengths, tags[:,i,tag_sequences[-1]], last_tag)) )
+            batch_scores = jnp.where(i+1==lengths, jnp.max(scores[:,i,:], axis=1), batch_scores)
         
         tag_sequences.reverse()
         return jnp.stack(tag_sequences[:-1], axis=1), batch_scores
     
+    def weighted_ce(self,
+                    batch_logits: jnp.ndarray,
+                    lengths: jnp.ndarray,
+                    batch_tags: jnp.ndarray) -> jnp.ndarray:
+        """Computes weighted cross-entropy loss for the given logits and tags
+        Args:
+            batch_logits: Emission scores of size [N,T,n_classes] where N is batch size
+            lengths: length of each element in the batch. A tensor of size [N,]
+            batch_tags: tags/class labels for each position of the N samples. A tensor of size [N,T]
+        Returns:
+            A tensor of size [1,] having the mean of CE of each sample in the batch.
+        """
+        logits_mask = jnp.arange(batch_logits.shape[1])<jnp.expand_dims(lengths, -1)
+        batch_logits = jnp.expand_dims(logits_mask, -1)*batch_logits
+        labels = hk.one_hot(batch_tags, self.n_classes)*jnp.squeeze(self.scale_factors, axis=-1)
+        softmax_xent = -jnp.sum(labels*jax.nn.log_softmax(batch_logits))
+        return softmax_xent/jnp.sum(logits_mask)
+
     def __call__(self,
                  batch_logits: jnp.ndarray,
                  lengths: jnp.ndarray, 
@@ -217,9 +238,9 @@ class crf_layer(hk.Module):
         Returns:
             A tensor of size [1,] having the mean of negative log likelihood of each sample in the batch.            
         """
-        partition_fn = self.batched_sum_scores(batch_logits, lengths)
-        gold_score = self.batched_score_sequence(batch_logits, lengths, batch_tags)
-        return jnp.mean(partition_fn-gold_score)
+        partition_fn = jnp.where(lengths!=0, self.batched_sum_scores(batch_logits, lengths), 0.)
+        gold_score = jnp.where(lengths!=0, self.batched_score_sequence(batch_logits, lengths, batch_tags), 0.)
+        return jnp.sum(partition_fn-gold_score)/jnp.sum(lengths!=0)+(self.weighted_ce(batch_logits, lengths, batch_tags) if self.ce_loss else 0)
 
 class BaseFinalLayer(hk.Module):
     def __init__(self):

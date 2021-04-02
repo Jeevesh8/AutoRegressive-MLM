@@ -190,7 +190,9 @@ class FineTuningExtendedEncoder(BaseExtendedEncoder):
          
             self.lin = hk.Linear(config['n_classes'])
             self.last_layer = crf_layer(n_classes=config['n_classes'],
-                                     transition_init=transition_init,)
+                                       transition_init=transition_init,
+                                       scale_factors=config['scale_factors'],
+                                       init_alphas=config['init_alphas'])
         else:
             raise NotImplementedError("No implementation for finetuning with last layer as : ", config['last_layer'])
     
