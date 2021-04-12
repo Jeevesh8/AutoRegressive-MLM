@@ -55,7 +55,7 @@ class crf_layer(hk.Module):
             A tensor of size [n_classes,] where the i-th entry is the accumulation of all scores of all sequences
             ending at the i-th tag at time step t.
         """
-        prev_alphas = fn( jnp.expand_dims(logit_t/self.n_classes, 1)
+        prev_alphas = fn( jnp.expand_dims(logit_t, 1)
                           +transition_matrix+prev_alphas, axis=1 )
         
         return prev_alphas
@@ -75,7 +75,7 @@ class crf_layer(hk.Module):
         """
         scan_fn = lambda prev_alphas, logit_t: (self.core_recursion(logsumexp, transition_matrix, prev_alphas, logit_t),)*2
         alphas = lax.scan(scan_fn, init=self.init_alphas+logits[0,:], xs=logits[1:])
-        return jnp.sum(alphas[1], -1)
+        return logsumexp(alphas[1], axis=-1)
     
     def score_sequence(self,
                        transition_matrix: jnp.ndarray,
@@ -111,7 +111,7 @@ class crf_layer(hk.Module):
                               that can be attained by a tag sequence of length (t+1) ending at class label i
             second element is: a tensor of size [T, n_classes] where the (t,i)-th entry is the class label at 
                                t-th position in the max. scoring sequence of length (t+1) ending at class label i.
-                               The 0-th entry of this tensor is to be discarded away.
+                               The 0-th entry of this tensor can be discarded away.
         """
         prev_alphas = self.init_alphas+logits[0,:]
 
@@ -140,7 +140,7 @@ class crf_layer(hk.Module):
         """
         transition_matrix = hk.get_parameter("transition_matrix", 
                                              [self.n_classes, self.n_classes], 
-                                             init=self.transition_init)*self.scale_factors
+                                             init=self.transition_init)
         
         batch_score_fn = jax.vmap(lambda logits: self.sum_scores(transition_matrix, logits),
                                   in_axes=(0,), out_axes=0)
@@ -163,7 +163,7 @@ class crf_layer(hk.Module):
         """
         transition_matrix = hk.get_parameter("transition_matrix", 
                                              [self.n_classes, self.n_classes], 
-                                             init=self.transition_init)*self.scale_factors
+                                             init=self.transition_init)
         
         batch_seq_score_fn = jax.vmap(lambda logits, tags: self.score_sequence(transition_matrix, logits, tags),
                                       in_axes=(0,0), out_axes=0)
@@ -187,7 +187,7 @@ class crf_layer(hk.Module):
         """
         transition_matrix = hk.get_parameter("transition_matrix", 
                                              [self.n_classes, self.n_classes], 
-                                             init=self.transition_init)*self.scale_factors
+                                             init=self.transition_init)
         
         batch_decode_fn = jax.vmap(lambda logits: self.viterbi_decode(transition_matrix, logits),
                                    in_axes=(0), out_axes=(0,0))
@@ -200,7 +200,7 @@ class crf_layer(hk.Module):
         for i in range(scores.shape[1]-1, -1, -1):
             
             last_tag = jnp.where(i+1==lengths, jnp.argmax(scores[:,i,:], axis=1), -1)
-            tag_sequences.append( jnp.diag(jnp.where(i+1<lengths, tags[:,i,tag_sequences[-1]], last_tag)) )
+            tag_sequences.append( jnp.diag(jnp.where(i+1<lengths, tags[:,i+1,tag_sequences[-1]], last_tag)) )
             batch_scores = jnp.where(i+1==lengths, jnp.max(scores[:,i,:], axis=1), batch_scores)
         
         tag_sequences.reverse()

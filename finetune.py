@@ -23,7 +23,7 @@ from src.optimizers.adam import get_adam_opt
 from src.Tokenizers.masking_utils import get_masking_func
 
 from config import config
-from loss_eval_utils import ft_loss, get_params, get_classification_report
+from loss_eval_utils import ft_loss, get_params, get_classification_report, flatten_dict
 
 import wandb
 
@@ -168,7 +168,7 @@ def train(config, params, train_data_loader, key, opt_state):
 
         for step, thread in enumerate(train_data_loader.thread_generator()):
                         
-            if step%(config['total_steps']//3)==0:
+            if step%(config['total_steps'])==0:
                 print(f'[Step {step}]')
 
             thread = lm_tokeniser.tokenize_thread(thread)
@@ -179,16 +179,16 @@ def train(config, params, train_data_loader, key, opt_state):
             
             losses.append(batch_loss.item())
 
-            if step%(config['total_steps']//3)==0:
+            if step%(config['total_steps'])==0:
                 print(sum(losses)/len(losses))
                 losses = []
 
             if step==config['total_steps']-1:
                 all_preds, all_labels = evaluate(config, params, valid_data_loader, key)
-                wandb.log({'Validation' : get_classification_report(config, all_labels, all_preds)})
+                wandb.log(flatten_dict({'Validation' : get_classification_report(config, all_labels, all_preds)}))
     
                 all_preds, all_labels = evaluate(config, params, test_data_loader, key)
-                wandb.log({'Test' : get_classification_report(config, all_labels, all_preds)})
+                wandb.log(flatten_dict({'Test' : get_classification_report(config, all_labels, all_preds)}))
     
     return val_losses
 

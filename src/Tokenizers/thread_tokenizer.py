@@ -26,11 +26,13 @@ class Thread_Tokenizer(Base_Tokenizer):
 
         for part, typ in zip(parts, type_ids):
             tokenized_str+=part
-            if typ==0:
+            if len(part)<=1:
+                tokenwise_type_ids+=[tokenwise_type_ids[-1]]*len(part)
+            elif typ==0:
                 tokenwise_type_ids+=[self.class_to_id['O']]*len(part)
-            if typ==1:
+            elif typ==1:
                 tokenwise_type_ids+=([self.class_to_id['B-Claim']]+[self.class_to_id['I-Claim']]*(len(part)-1))
-            if typ==2:
+            elif typ==2:
                 tokenwise_type_ids+=([self.class_to_id['B-Premise']]+[self.class_to_id['I-Premise']]*(len(part)-1))
         
         if len(tokenized_str)<self.config['max_length']:

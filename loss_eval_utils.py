@@ -6,6 +6,12 @@ import jax.numpy as jnp
 import jax
 import haiku as hk
 
+def flatten_dict(dd, separator='_', prefix=''):
+    return { prefix + separator + k if prefix else k : v
+             for kk, vv in dd.items()
+             for k, v in flatten_dict(vv, separator, kk).items()
+             } if isinstance(dd, dict) else { prefix : dd }
+
 def get_sample_inp(config):
     
     token_ids = np.random.randint(config['vocab_size'], size=(config['mlm_batch_size'], config['max_length']))
@@ -60,7 +66,7 @@ def remove_pad_preds(all_preds, all_labels):
 def get_pred_list(config, labels, preds, batch):
 
     logits_mask = (batch!=config['pad_id'])
-    preds = jnp.where(jax.device_put(logits_mask), preds, -1.)
+    preds = jnp.where(jax.device_put(logits_mask), preds, -1)
     
     all_preds = preds.reshape(preds.shape[0], -1).tolist()
     all_labels = labels.reshape(labels.shape[0], -1).tolist()
