@@ -31,7 +31,7 @@ def make_ref_dic(parsed_xml: bs4.BeautifulSoup) -> dict:
     ref_dic['title'] = 1
     n_lines = len(clean_text(title_text).split())+1
 
-    for post in [parsed_xml.find('OP')]+parsed_xml.find_all('reply'):
+    for post in [parsed_xml.find('op')]+parsed_xml.find_all('reply'):
         
         for elem in post.contents:
         
@@ -84,7 +84,7 @@ def refine_ref_dic(post: bs4.element.Tag, ref_dic: dict, start_idx: int) -> dict
     Filters ref_dic to remove references to claim/premise outside of the post given. 
     If such references are not there, then add_cp will not include inter-turn relations.
 
-    post: output of parsed_xml.find('OP'), or an element of parsed_xml.find_all('reply')
+    post: output of parsed_xml.find('op'), or an element of parsed_xml.find_all('reply')
           where 'parsed_xml' is the output of parsing the entire xml string of a .xml file in AMPERSAND
     
     ref_dic: dictionary with keys as ids of claims/premises and values as the line number they will start on.
@@ -100,7 +100,7 @@ def refine_ref_dic(post: bs4.element.Tag, ref_dic: dict, start_idx: int) -> dict
             last_index += int(str_to_write[j].split('\t')[0])
 
     new_ref_dic = {}
-    if str(post).startswith('<OP'):
+    if str(post).startswith('<op'):
         new_ref_dic['title'] = ref_dic['title']
 
     for elem in post.contents:
@@ -135,7 +135,7 @@ def build_CoNLL(parsed_xml: bs4.BeautifulSoup, thread_wise: bool=True):
     title_text = str(parsed_xml.find('title').find('claim').contents[0])
     add_cp(title_text, temp_ref_dic, id='title')
     
-    for post in [parsed_xml.find('OP')]+parsed_xml.find_all('reply'):
+    for post in [parsed_xml.find('op')]+parsed_xml.find_all('reply'):
         
         if thread_wise:
             ref_dic = temp_ref_dic
