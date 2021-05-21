@@ -194,9 +194,9 @@ if __name__=='__main__':
         if os.path.isfile(filename) and filename.endswith('.xml'):
             with open(filename, 'r') as g:
                 xml_str = g.read()
-            parsed_xml = BeautifulSoup(xml_str, "xml")        
+            parsed_xml = BeautifulSoup(str(BeautifulSoup(xml_str, "lxml")), "xml")
             build_CoNLL(parsed_xml, not args.post_wise)
 
     with open(args.write_file, 'w') as f:
-        for elem in str_to_write:
+        for elem in str_to_write[1:]:
             f.write(elem+'\n' if not elem.endswith('\n') else elem)
