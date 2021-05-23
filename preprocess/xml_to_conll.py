@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import argparse
 
 def clean_text(text: str) -> str:
-    replaces = [("&", "and"), ("’", "'"), ("“", '"'), ("”", '"')]
+    replaces = [("’", "'"), ("“", '"'), ("”", '"')]
     for elem in replaces:
         text = text.replace(*elem)
     
@@ -18,6 +18,7 @@ def clean_text(text: str) -> str:
     text = text.strip(' _\t\n')
     text = re.sub(r'\(https?://\S+\)', '<url>', text)                               #To remove URLs
     text = re.sub(r'&gt;.*(?!(\n+))$', '', text)                                    #To remove quotes at last.
+    text = text.replace("&", "and")
     text = re.sub(r'\n', ' ', text)
     text = text.rstrip(' _\n\t')
     text = re.sub(r'\n', ' ', text)
