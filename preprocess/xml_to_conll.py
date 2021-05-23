@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import argparse
 
 def clean_text(text: str) -> str:
-    for elem in ['.', ',','!',';', ':', '*']:
+    for elem in ['.', ',','!',';', ':', '*', '?']:
         text = text.replace(elem, ' '+elem+' ')
     
     replaces = [("&", "and"), ("’", "'"), ("“", '"'), ("”", '"')]
