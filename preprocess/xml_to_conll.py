@@ -10,7 +10,7 @@ def clean_text(text: str) -> str:
     for elem in replaces:
         text = text.replace(*elem)
     
-    for elem in ['.', ',','!',';', ':', '*', '?', '/', '\'', '\"', '[', ']', '(', ')', '_', '^']:
+    for elem in ['.', ',','!',';', ':', '*', '?', '/', '\'', '\"', '[', ']', '(', ')', '_', '^', '>']:
         text = text.replace(elem, ' '+elem+' ')
     
     text = text.strip(' _\t\n')
