@@ -6,12 +6,12 @@ from bs4 import BeautifulSoup
 import argparse
 
 def clean_text(text: str) -> str:
-    for elem in ['.', ',','!',';', ':', '*', '?']:
-        text = text.replace(elem, ' '+elem+' ')
-    
     replaces = [("&", "and"), ("’", "'"), ("“", '"'), ("”", '"')]
     for elem in replaces:
         text = text.replace(*elem)
+    
+    for elem in ['.', ',','!',';', ':', '*', '?', '/', '\'', '\"', '[', ']', '(', ')']:
+        text = text.replace(elem, ' '+elem+' ')
     
     text = text.strip(' _\t\n')
     text = text.split('____')[0]                                                    #To remove footnotes
