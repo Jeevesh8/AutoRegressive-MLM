@@ -10,7 +10,7 @@ def clean_text(text: str) -> str:
         text = text.replace(elem, ' '+elem+' ')
     
     replaces = [("&", "and"), ("’", "'"), ("“", '"'), ("”", '"')]
-    for elem in relaces:
+    for elem in replaces:
         text = text.replace(*elem)
     
     text = text.strip(' _\t\n')
